@@ -1,0 +1,14 @@
+# Agent Rules for panlm-skills
+
+## Skill 编辑规则
+
+**严禁直接修改系统目录下的 skill 文件。** 所有 skill 的编辑、创建、调试工作必须在当前 repo (`panlm-skills`) 中进行。
+
+不允许直接写入或修改以下任何系统目录中的文件：
+- `~/.config/opencode/skills/`
+- `~/.agent/skills/`
+- `~/.claude/skills/`
+- `~/.kiro/skills/`
+- 以及其他类似的系统级 skill 安装目录
+
+修改完成后，由用户自行决定是否将改动同步到系统目录。
