@@ -25,6 +25,18 @@ Research and compile comprehensive best-practice checklists for any AWS service 
 aws-knowledge-mcp-server documentation search tools. Optionally audit live AWS resources
 against the compiled checklist.
 
+## Output Language Rule
+
+Detect the language of the user's conversation and use the **same language** for all output —
+including checklist table headers, descriptions, category titles, summary text, and audit findings.
+
+- If the user writes in Chinese, output entirely in Chinese.
+- If the user writes in English, output entirely in English.
+- If the user writes in Japanese, output entirely in Japanese.
+- For mixed-language input, follow the **dominant language** (the language used in the majority of the message).
+
+This rule applies to every step of the workflow, not just the final output.
+
 ## Prerequisites
 
 This skill requires the **aws-knowledge-mcp-server** tools to be available:
@@ -54,49 +66,41 @@ Record whether a live audit is requested:
 - **If the user provides partial info** → ask for the missing pieces before proceeding
 - **If the user provides no live resource info** → skip live audit, produce checklist only
 
-### Step 2: Sequential Documentation Search
+### Step 2: Parallel Documentation Search
 
-Run the following 6 search queries **one at a time, sequentially** using `aws___search_documentation`.
-**Do NOT run them in parallel** — the aws-knowledge-mcp-server has rate limits and parallel
-requests will trigger "Too many requests" errors.
-
-Wait for each query to return results before sending the next one. Replace `{SERVICE}` with
+Run **all 6 search queries in parallel** using `aws___search_documentation`. Replace `{SERVICE}` with
 the actual service name (e.g., "ElastiCache Redis", "Amazon RDS MySQL", "Amazon MSK").
 
 ```
 Query 1: "{SERVICE} best practices high availability disaster recovery"
   topics: ["general", "reference_documentation"]
-  limit: 10
+  limit: 15
 
 Query 2: "{SERVICE} Well-Architected reliability resilience best practices"
   topics: ["general", "reference_documentation"]
-  limit: 10
+  limit: 15
 
 Query 3: "{SERVICE} replication multi-AZ failover cluster mode backup"
   topics: ["reference_documentation", "troubleshooting"]
-  limit: 10
+  limit: 15
 
 Query 4: "{SERVICE} security encryption authentication access control"
   topics: ["general", "reference_documentation"]
-  limit: 10
+  limit: 15
 
 Query 5: "{SERVICE} Well-Architected security best practices"
   topics: ["general", "reference_documentation"]
-  limit: 10
+  limit: 15
 
 Query 6: "Security Hub controls for {SERVICE}"
   topics: ["general", "reference_documentation"]
-  limit: 10
+  limit: 15
 ```
-
-**Rate limit protection**: If any query returns a "Too many requests" error, wait 5 seconds
-and retry once. If it fails again, skip that query and continue with the next one.
 
 ### Step 3: Read Key Documentation Pages
 
-From the search results, identify and read the most important pages **one at a time,
-sequentially** using `aws___read_documentation`. **Do NOT read multiple pages in parallel**
-to avoid rate limiting. Prioritize these document types:
+From the search results, identify and read the most important pages in parallel using
+`aws___read_documentation`. Prioritize these document types:
 
 1. **Well-Architected Lens** pages for the service (Reliability, Security, Performance, Operational Excellence pillars)
 2. **Security Hub controls** page for the service
@@ -248,13 +252,8 @@ After presenting the audit results, suggest:
   It's better to include a check item and mark it as lower priority than to miss it.
 - **Always cite sources**: Every check item must have a source annotation.
   Users need to know where each recommendation comes from.
-- **Always use sequential requests**: All searches and page reads must be executed one at a
-  time, sequentially. **Never send multiple aws-knowledge-mcp-server requests in parallel.**
-  The MCP server has rate limits that will reject concurrent requests with "Too many requests"
-  errors. Sequential execution is slower but reliable.
-- **Rate limit protection**: If any MCP request returns a "Too many requests" error, wait
-  5 seconds and retry the same request once. If it fails a second time, skip that request
-  and continue with the next step. Do not retry more than once per request.
+- **Use parallel searches**: All 6 initial searches should run in parallel to save time.
+  Page reads should also be parallelized where possible.
 - **Focus on actionable items**: Each check item should be something the user can verify
   against their actual configuration. Avoid vague recommendations.
 - **Include specific thresholds**: When documentation specifies numbers (e.g., "at least 2 replicas",

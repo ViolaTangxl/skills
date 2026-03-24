@@ -1,14 +1,18 @@
 # Search Query Templates
 
-Templates for the 6 parallel documentation searches. Replace `{SERVICE}` with the
+Templates for the 6 sequential documentation searches. Replace `{SERVICE}` with the
 actual AWS service name (e.g., "ElastiCache Redis", "Amazon RDS MySQL", "Amazon MSK").
+
+**IMPORTANT**: Execute all queries **one at a time, sequentially**. Do NOT run them in
+parallel — the aws-knowledge-mcp-server has rate limits. Wait for each query to complete
+before sending the next one.
 
 ## Query 1: Official Best Practices + HA/DR
 
 ```
 search_phrase: "{SERVICE} best practices high availability disaster recovery"
 topics: ["general", "reference_documentation"]
-limit: 15
+limit: 10
 ```
 
 **Why**: Finds the service's own best-practice documentation, resilience pages,
@@ -19,7 +23,7 @@ and HA/DR configuration guides.
 ```
 search_phrase: "{SERVICE} Well-Architected reliability resilience best practices"
 topics: ["general", "reference_documentation"]
-limit: 15
+limit: 10
 ```
 
 **Why**: Finds the service-specific Well-Architected Lens (if one exists), which is
@@ -30,7 +34,7 @@ the single most comprehensive source of best practices organized by pillar.
 ```
 search_phrase: "{SERVICE} replication multi-AZ failover cluster mode backup"
 topics: ["reference_documentation", "troubleshooting"]
-limit: 15
+limit: 10
 ```
 
 **Why**: Finds detailed configuration documentation for HA mechanisms, including
@@ -41,7 +45,7 @@ replication setup, failover behavior, backup/restore procedures.
 ```
 search_phrase: "{SERVICE} security encryption authentication access control"
 topics: ["general", "reference_documentation"]
-limit: 15
+limit: 10
 ```
 
 **Why**: Finds encryption (at-rest, in-transit), authentication mechanisms (IAM, RBAC,
@@ -52,7 +56,7 @@ native auth), network security (VPC, security groups, subnet groups), and compli
 ```
 search_phrase: "{SERVICE} Well-Architected security best practices"
 topics: ["general", "reference_documentation"]
-limit: 15
+limit: 10
 ```
 
 **Why**: Finds security-specific Well-Architected recommendations, supplementing
@@ -63,7 +67,7 @@ Query 4 with framework-level security pillar guidance.
 ```
 search_phrase: "Security Hub controls for {SERVICE}"
 topics: ["general", "reference_documentation"]
-limit: 15
+limit: 10
 ```
 
 **Why**: Finds AWS Security Hub CSPM controls specific to the service. These are
@@ -81,7 +85,8 @@ After the 6 searches complete, identify and read key pages in this priority orde
 4. **Resilience / disaster recovery page** — specific HA/DR mechanics
 5. **Replication / configuration reference** — detailed setup parameters
 
-Read up to 5 pages in parallel with `max_length: 15000` each.
+Read up to 5 pages **sequentially** (one at a time) with `max_length: 15000` each.
+Wait for each page read to complete before starting the next one.
 
 ## Additional Searches (if initial results are thin)
 
