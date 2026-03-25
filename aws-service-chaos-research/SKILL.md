@@ -50,6 +50,14 @@ Do NOT use SearXNG or other web search tools for documentation research.
 
 ## Workflow
 
+**CRITICAL — Sequential execution of all AWS Knowledge MCP calls:**
+All calls to `aws___search_documentation`, `aws___read_documentation`, and
+`aws___recommend` MUST be executed **one at a time, sequentially**. NEVER send
+multiple MCP requests in parallel — the aws-knowledge-mcp-server has strict rate
+limits and will reject concurrent requests with "Too many requests" errors.
+Wait for each request to return a complete response before sending the next one.
+This applies to ALL steps below (Step 2, 4b, 4c, 5a, 5b).
+
 ### Step 1: Identify Target Service
 
 Extract the target AWS service from the user's message and determine the target region.
@@ -106,7 +114,8 @@ AWS CLI or API. The only way to discover them is by reading the latest documenta
 
 Fetch the Scenario Library pages listed in `references/search-queries.md` under
 "FIS Scenario Library Pages (Always Fetch)". Read both the overview and detailed scenario
-pages relevant to the target service.
+pages relevant to the target service. **Read pages one at a time, sequentially** —
+wait for each `aws___read_documentation` call to complete before starting the next one.
 
 #### From the scenario documentation, extract for each relevant scenario:
 
@@ -257,7 +266,8 @@ Library composite scenarios — see the Scenario Library and Cross-Cutting secti
 
 #### 4b: Enrich with Service-Specific Capabilities
 
-Some services have **built-in fault injection** beyond FIS. Search for these:
+Some services have **built-in fault injection** beyond FIS. Search for these
+(**sequentially** — wait for the search to complete before reading any result pages):
 
 ```
 aws___search_documentation(
@@ -273,8 +283,9 @@ If found, add a "Service Built-in Fault Injection" section using the table forma
 #### 4c: Deep Documentation Research
 
 Use the search queries from `references/search-queries.md` under "FIS-Enriched Path".
-Run all 5 queries **sequentially**. After searches, read the top 3-5 most relevant
-pages and use `aws___recommend` on the most relevant page for discovery.
+Run all 5 queries **sequentially** (one at a time). After searches, read the top 3-5
+most relevant pages **one at a time** and use `aws___recommend` on the most relevant
+page for discovery. Never send multiple read or recommend requests in parallel.
 
 ### Step 5: Documentation-Only Path (No FIS Actions)
 
@@ -284,13 +295,14 @@ documentation research. Note that Scenario Library findings from Step 2 still ap
 #### 5a: Deep Documentation Search
 
 Use the search queries from `references/search-queries.md` under "Documentation-Only Path".
-Run all 6 queries **sequentially**.
+Run all 6 queries **sequentially** (one at a time, wait for each to complete).
 
 #### 5b: Read Key Pages and Discover Related Content
 
 From the combined search results, read the **top 5 most relevant pages** following the
-priority order in `references/search-queries.md`. Then use `aws___recommend` on the
-service's main documentation page to discover related content.
+priority order in `references/search-queries.md`. Read pages **one at a time** — wait
+for each `aws___read_documentation` call to complete before the next. Then use
+`aws___recommend` on the service's main documentation page to discover related content.
 
 Extract from all pages:
 - **Failure modes** the service can experience
@@ -339,5 +351,9 @@ The report must include all sections in this order:
   `reference_documentation`, `troubleshooting`) sequentially.
 - **Use aws___recommend for discovery.** After reading a key page, call `aws___recommend`
   to find related content that keyword search may miss.
-- **Run searches sequentially.** AWS Knowledge MCP tools do not support parallel calls.
+- **NEVER send MCP requests in parallel.** All calls to `aws___search_documentation`,
+  `aws___read_documentation`, and `aws___recommend` MUST be executed one at a time.
+  Wait for each response before sending the next request. Parallel calls will trigger
+  "Too many requests" errors from the aws-knowledge-mcp-server. This is the single
+  most common cause of failures — enforce strictly in every step.
 - **Respect language.** Output in the same language as the user's conversation.
