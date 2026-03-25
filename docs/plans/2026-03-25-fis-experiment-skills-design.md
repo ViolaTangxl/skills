@@ -6,14 +6,15 @@
 ## Overview
 
 Two independent skills for creating and executing AWS FIS (Fault Injection Service)
-experiments. Skill 1 generates all configuration files; Skill 2 deploys and runs them.
+experiments. Skill 1 generates all configuration files and deploys them via
+CloudFormation with self-healing iteration; Skill 2 starts and monitors the experiment.
 
 ## Skills
 
 | Skill | Purpose | Input | Output |
 |---|---|---|---|
-| **aws-fis-experiment-prepare** | Discover resources, generate configs | User describes scenario | Local directory with all files |
-| **aws-fis-experiment-execute** | Deploy resources, run experiment, monitor | Prepare output directory | Experiment results report |
+| **aws-fis-experiment-prepare** | Discover resources, generate configs, deploy via CFN | User describes scenario | Local directory + deployed CFN stack |
+| **aws-fis-experiment-execute** | Start experiment, monitor, report results | Prepare output directory (or deployed stack) | Experiment results report |
 
 ## Skill 1: aws-fis-experiment-prepare
 
@@ -27,7 +28,12 @@ experiments. Skill 1 generates all configuration files; Skill 2 deploys and runs
 2. Discover target resources (CLI: list-actions, user provides tags/ARNs)
 3. Determine monitoring metrics per affected service
 4. Generate all config files to local directory
-5. Output README summary
+5. **Deploy CFN template with self-healing loop:**
+   - Validate template syntax (`validate-template`)
+   - Deploy stack (`cloudformation deploy`)
+   - On failure: read stack events -> diagnose error -> fix `cfn-template.yaml` -> delete failed stack -> retry
+   - Max 5 retries; on success extract outputs and update local files with real ARNs
+6. Present summary (stack name, experiment template ID, dashboard URL, next steps)
 
 ### Output Directory
 ```
@@ -53,9 +59,9 @@ experiments. Skill 1 generates all configuration files; Skill 2 deploys and runs
 - "启动 FIS 实验", "运行混沌实验"
 
 ### Workflow
-1. Load and validate experiment directory
-2. User chooses deployment method: CLI or CFN
-3. Deploy infrastructure (user confirms)
+1. Load and validate experiment directory (or use already-deployed stack from Prepare)
+2. User chooses deployment method: CLI or CFN (skip if already deployed by Prepare)
+3. Deploy infrastructure if needed (user confirms)
 4. Start experiment (user confirms with impact warning)
 5. Monitor experiment status (poll + dashboard URL)
 6. Generate results report
@@ -70,5 +76,6 @@ experiments. Skill 1 generates all configuration files; Skill 2 deploys and runs
 - **Independent skills:** No dependency on aws-service-chaos-research
 - **File as interface:** Prepare outputs files, Execute reads them
 - **Both CLI + CFN:** Single CFN template contains all resources
-- **Strict confirmation:** Critical steps require user approval
+- **Prepare deploys CFN:** Prepare skill auto-deploys and self-heals on failure (up to 5 retries), so user receives a validated, working stack
+- **Strict confirmation:** Experiment start requires explicit user approval (Prepare deploys infra automatically, but never starts the experiment)
 - **Language follows user:** Output matches conversation language
