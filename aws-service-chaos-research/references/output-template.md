@@ -77,9 +77,9 @@ List only the sub-actions that are relevant to the user's environment.
 > Cross-cutting actions are optional supplementary scenarios for testing infrastructure-level
 > fault impact on services indirectly.
 
-| # | Test Scenario | FIS Action | Applicable Services |
-|---|---|---|---|
-| 1 | {scenario} | `{action}` | {which services are affected} |
+| Test Scenario | FIS Action | Applicable Services |
+|---|---|---|
+| {scenario} | `{action}` | {which services are affected} |
 
 Cross-cutting actions to include when relevant:
 - `aws:network:disrupt-connectivity` — any VPC-based service (simulates AZ network failure)
@@ -102,11 +102,19 @@ the user is focused only on service-native failures.
 For **each service**, create a numbered section (Section 3, 4, 5, ...) with the
 following sub-sections. If only one service is being tested, use Section 3 only.
 
+**RED FLAG — Common mistake to avoid:**
+Do NOT use `| # | ...` numbered rows as the test plan. The ONLY table with test
+identifiers in each per-service section is the "Recommended Testing Scenario Matrix"
+at the end, which uses `Test ID` column with `{SVC}-1` format. All other tables
+(FIS Native, Built-in, Testing Methods) are reference lists — they do NOT have
+numbered `#` columns.
+
 #### {N}. {SERVICE} — {RESOURCE_ID}
 
 ##### FIS Native Fault Injection Scenarios
 
 Use this sub-section when FIS has native actions for the service.
+This is a **reference list** of available FIS actions — NOT the test plan.
 
 **IMPORTANT — Scenario Library deduplication:** Before building this table, check
 each FIS action against the Scenario Library composite scenarios in Section 2.
@@ -123,11 +131,11 @@ is covered by AZ Power Interruption), OMIT this entire sub-section and replace w
 > All FIS native actions for {SERVICE} are covered by Scenario Library composite
 > scenarios. See Section 2 for details.
 
-**Otherwise**, list the actions in this table:
+**Otherwise**, list the actions in this table (NO `#` column — this is a reference list):
 
-| # | Test Scenario | FIS Action | Description | HA Verification Purpose |
-|---|---|---|---|---|
-| 1 | {scenario name} | `aws:{service}:{action}` | {what the action does} | {what resilience property it validates} |
+| FIS Action | Description | HA Verification Purpose |
+|---|---|---|
+| `aws:{service}:{action}` | {what the action does} | {what resilience property it validates} |
 
 Group scenarios by failure domain when there are many:
 1. **Instance/Task Level** — individual resource failure
@@ -138,10 +146,11 @@ Group scenarios by failure domain when there are many:
 ##### Service Built-in Fault Injection
 
 Use this sub-section for service-native fault injection methods (not FIS).
+This is a **reference list** — NOT the test plan.
 
-| # | Method | Command/API | What It Simulates |
-|---|---|---|---|
-| 1 | {method name} | `{CLI command or API call}` | {what it simulates} |
+| Method | Command/API | What It Simulates |
+|---|---|---|
+| {method name} | `{CLI command or API call}` | {what it simulates} |
 
 Known built-in capabilities to check:
 - **Aurora MySQL/PostgreSQL**: `ALTER SYSTEM CRASH`, `ALTER SYSTEM SIMULATE READ REPLICA FAILURE`
@@ -159,15 +168,15 @@ has **no native FIS actions**. Include a note explaining this.
 
 ###### Indirect FIS Fault Injection
 
-| # | Test Scenario | Method | What It Validates |
-|---|---|---|---|
-| 1 | {scenario} | `{FIS action or method}` | {what it validates} |
+| Test Scenario | Method | What It Validates |
+|---|---|---|
+| {scenario} | `{FIS action or method}` | {what it validates} |
 
 ###### AWS API / Console Methods
 
-| # | Test Scenario | Method | What It Validates |
-|---|---|---|---|
-| 1 | {scenario} | `{CLI/API/Console method}` | {what it validates} |
+| Test Scenario | Method | What It Validates |
+|---|---|---|
+| {scenario} | `{CLI/API/Console method}` | {what it validates} |
 
 ##### Recommended Testing Scenario Matrix (REQUIRED)
 
@@ -286,8 +295,8 @@ Suggest 3-4 actionable next steps tailored to the service(s), for example:
 ## Formatting Rules
 
 1. **Section ordering**: Executive Summary → Scenario Library & Cross-Cutting → Per-Service sections → Consolidated Priority → Best Practices → References → Next Steps
-2. **Test ID format**: `{SERVICE_SHORT}-{NUMBER}` (e.g., `EKS-1`, `Redis-3`, `RDS-2`, `MSK-1`). IDs are unique per service and sequential
-3. **Consolidated priority table**: References Test IDs from per-service sections; does NOT duplicate full scenario descriptions
+2. **Test ID is the ONLY numbered identifier in per-service sections**: The `Test ID` column (`EKS-1`, `RDS-2`, `MSK-1`, etc.) in the "Recommended Testing Scenario Matrix" is the ONLY place where rows are numbered/identified. All other tables (FIS Native, Built-in, Testing Methods, Cross-Cutting) are reference lists and do NOT have a `#` column. If you find yourself writing `| # | ...` in a per-service table, STOP — that column belongs only in the Scenario Matrix.
+3. **Consolidated priority table references Test IDs**: The consolidated priority table MUST have a `Test ID` column that references IDs from per-service matrices (e.g., `EKS-1`, `RDS-3`). Do NOT write scenario names without IDs.
 4. **Per-service sections** each get their own numbered section with service name and resource ID
 5. **Table consistency**: All tables within the same sub-section type use identical column headers
 6. **FIS Action IDs** always in backtick code format: `aws:service:action`
