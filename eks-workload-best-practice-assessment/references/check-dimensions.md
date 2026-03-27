@@ -25,8 +25,8 @@ Covers resource management, probes, disruption budgets, scaling, and pod schedul
 | WL-05-md | **Startup probe for slow-starting apps** | Use `startupProbe` for containers that take a long time to initialize, to avoid premature liveness probe failures. | Medium | [K8s >= 1.20] |
 | WL-06-hi | **PDB exists for critical workloads** | Every Deployment/StatefulSet with >= 2 replicas should have a PodDisruptionBudget. Without PDB, voluntary disruptions (node drain, upgrades) can take all pods offline. | High | |
 | WL-07-hi | **No singleton pods** | Production workloads should have `replicas >= 2`. A single replica means zero availability during any disruption. | High | |
-| WL-08-md | **Topology spread constraints** | Use `topologySpreadConstraints` to spread pods across nodes and AZs. Prevents single-AZ failure from taking down a service. | Medium | [K8s >= 1.19] |
-| WL-09-md | **Pod anti-affinity** | For critical services, configure `podAntiAffinity` to avoid co-locating replicas on the same node. | Medium | |
+| WL-08-hi | **Topology spread constraints** | Use `topologySpreadConstraints` to spread pods across nodes and AZs. Prevents single-AZ failure from taking down a service. | High | [K8s >= 1.19] |
+| WL-09-hi | **Pod anti-affinity** | For critical services, configure `podAntiAffinity` to avoid co-locating replicas on the same node. | High | |
 | WL-10-md | **HPA or VPA configured** | Workloads with variable load should have Horizontal or Vertical Pod Autoscaler. Static replica counts waste resources or risk overload. | Medium | |
 | WL-11-md | **Graceful termination** | Verify `terminationGracePeriodSeconds` is appropriate (not the default 30s for services needing longer shutdown). Configure `preStop` hooks for connection draining. | Medium | |
 | WL-12-lo | **QoS class distribution** | Review the distribution of Guaranteed vs Burstable vs BestEffort pods. Production workloads should be Guaranteed (requests == limits) or at minimum Burstable. BestEffort pods are first to be evicted. | Low | |
