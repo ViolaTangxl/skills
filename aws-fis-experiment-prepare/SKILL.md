@@ -395,19 +395,65 @@ After the stack deploys successfully:
    - The CloudWatch dashboard URL
    - Cleanup command for this specific stack
 
-### Step 7: Present Summary
+### Step 7: Save Summary Report to Local File
 
-Present to the user:
-1. Scenario name and description
-2. Target region and AZ
-3. Affected resources summary
-4. Experiment duration
-5. Files generated and their locations
-6. **CFN deployment status**: Stack name, deployed resources, experiment template ID
-7. **CloudWatch Dashboard URL** for monitoring
-8. **Next step**: How to start the experiment
-   - Use aws-fis-experiment-execute skill, OR
-   - Manually: `aws fis start-experiment --experiment-template-id {ID} --region {REGION}`
+**Write the preparation summary to a local markdown file** instead of only presenting
+it in the terminal. Use the following file naming convention:
+
+```bash
+TIMESTAMP=$(date +%Y-%m-%d-%H-%M-%S)
+# File name: ${TIMESTAMP}-${SCENARIO_SLUG}-prepare-summary.md
+# Save the file in the same parent directory as ${OUTPUT_DIR}
+```
+
+The summary report file must include:
+
+```markdown
+# FIS Experiment Preparation Summary
+
+## Scenario
+- **Name:** {SCENARIO_NAME}
+- **Description:** {SCENARIO_DESCRIPTION}
+
+## Target
+- **Region:** {TARGET_REGION}
+- **Availability Zone:** {TARGET_AZ} (if applicable)
+
+## Affected Resources
+{list each affected resource type, ID, and configuration}
+
+## Experiment Duration
+- **Estimated Duration:** {DURATION}
+
+## Generated Files
+| File | Path | Description |
+|---|---|---|
+| Experiment Template | `{OUTPUT_DIR}/experiment-template.json` | FIS experiment template |
+| IAM Policy | `{OUTPUT_DIR}/iam-policy.json` | Required IAM permissions |
+| CFN Template | `{OUTPUT_DIR}/cfn-template.yaml` | CloudFormation deployment |
+| Stop Condition Alarms | `{OUTPUT_DIR}/alarms/stop-condition-alarms.json` | CloudWatch alarms |
+| Dashboard | `{OUTPUT_DIR}/alarms/dashboard.json` | CloudWatch dashboard |
+| Expected Behavior | `{OUTPUT_DIR}/expected-behavior.md` | Runtime reference |
+| README | `{OUTPUT_DIR}/README.md` | Experiment overview |
+
+## CFN Deployment Status
+- **Stack Name:** {STACK_NAME}
+- **Status:** {DEPLOYMENT_STATUS}
+- **Experiment Template ID:** {TEMPLATE_ID}
+- **CloudWatch Dashboard URL:** {DASHBOARD_URL}
+
+## Next Step
+To start the experiment:
+- Use aws-fis-experiment-execute skill, OR
+- Manually: `aws fis start-experiment --experiment-template-id {ID} --region {REGION}`
+```
+
+After saving the file, print a brief summary to the terminal listing only:
+- The file path of the saved summary report
+- The experiment output directory path
+- CFN stack name and deployment status
+- Experiment template ID
+- Next step instruction
 
 ## Important Guidelines
 

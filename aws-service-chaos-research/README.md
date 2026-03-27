@@ -18,7 +18,7 @@ When planning chaos engineering or HA verification for AWS services, engineers f
 1. **Scenario Library Research** — Reads the latest FIS Scenario Library documentation to discover AWS-curated composite resilience testing scenarios. This always runs first (highest priority).
 2. **FIS Action Discovery** — Queries `aws fis list-actions` (or falls back to documentation search) to find service-specific fault injection actions in the target region.
 3. **Documentation Research** — Searches official AWS documentation via [aws-knowledge-mcp-server](https://github.com/awslabs/mcp/tree/main/src/aws-knowledge-mcp-server) for HA/DR best practices, failure modes, and testing approaches.
-4. **Report Generation** — Compiles all findings into a structured report with scenario matrices, priority rankings, implementation best practices, and actionable next steps.
+4. **Report Generation** — Compiles all findings into a structured markdown report file (saved locally with `YYYY-mm-dd-HH-MM-SS-{service}-chaos-research.md` naming), containing scenario matrices, priority rankings, implementation best practices, and actionable next steps.
 
 ## Prerequisites
 
@@ -51,10 +51,15 @@ Step 4: FIS-Enriched Path              Step 5: Doc-Only Path    │
          ↓                                    ↓                  │
          └────────────────┬───────────────────┘                  │
                           ↓
-Step 6: Compile output report (7 sections)
+Step 6: Save report to local file (YYYY-mm-dd-HH-MM-SS-{service}-chaos-research.md)
 ```
 
 ## Report Structure
+
+Reports are saved directly to local markdown files (not printed to terminal). File names
+use the format `YYYY-mm-dd-HH-MM-SS-{service}-chaos-research.md`. For multi-service
+requests, one file is generated per service. A brief summary (file paths, key stats,
+top 3 priorities) is printed to the terminal.
 
 Every generated report contains these 7 sections:
 

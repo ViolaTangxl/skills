@@ -250,11 +250,22 @@ aws fis get-experiment \
   aws fis stop-experiment --id "{EXPERIMENT_ID}" --region {REGION}
   ```
 
-### Step 6: Generate Results Report
+### Step 6: Save Results Report to Local File
 
-After the experiment completes (any terminal state), generate a results summary:
+After the experiment completes (any terminal state), generate a results report and
+**write it directly to a local markdown file** instead of outputting the full content
+to the terminal. Use the following file naming convention:
 
+```bash
+TIMESTAMP=$(date +%Y-%m-%d-%H-%M-%S)
+SCENARIO_SLUG=$(echo "{SCENARIO_NAME}" | tr '[:upper:]' '[:lower:]' | tr ' :/' '-')
+# File name: ${TIMESTAMP}-${SCENARIO_SLUG}-experiment-results.md
+# Save the file in the experiment directory (${EXPERIMENT_DIR})
 ```
+
+The results report file must include:
+
+```markdown
 ## FIS Experiment Results
 
 **Experiment ID:** {EXPERIMENT_ID}
@@ -287,6 +298,13 @@ After the experiment completes (any terminal state), generate a results summary:
 3. Review experiment logs (if logging was enabled)
 4. {cleanup instructions}
 ```
+
+After saving the file, print a brief summary to the terminal listing only:
+- The file path of the saved results report
+- Experiment ID and final status
+- Start time, end time, and duration
+- Per-action status (one line each)
+- Cleanup instructions
 
 ## Safety Rules
 

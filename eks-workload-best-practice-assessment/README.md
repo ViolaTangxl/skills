@@ -1,0 +1,84 @@
+# EKS Workload Best Practice Assessment
+
+Assess Kubernetes workloads running on Amazon EKS against best practices from the K8s official
+documentation and the [EKS Best Practices Guide](https://docs.aws.amazon.com/eks/latest/best-practices/introduction.html).
+
+## What It Does
+
+This skill evaluates **workload-level** configurations — the items that require `kubectl` and
+in-cluster inspection. It complements [aws-best-practice-research](../aws-best-practice-research/)
+which covers the EKS **infrastructure layer** (control plane, node groups, addons, etc.).
+
+### 8 Assessment Dimensions
+
+| # | Dimension | Prefix | What It Checks |
+|---|-----------|--------|----------------|
+| 1 | Workload Configuration | WL- | Resource requests/limits, probes, PDB, HPA/VPA, topology spread |
+| 2 | Security | SEC- | PSA, pod security context, RBAC, IRSA, NetworkPolicy, secrets |
+| 3 | Observability | OBS- | Container Insights, logging, metrics, tracing |
+| 4 | Networking | NET- | Service types, Ingress/ALB, CoreDNS, VPC CNI, service mesh |
+| 5 | Storage | STR- | PVC/StorageClass, CSI drivers, encryption, backup |
+| 6 | EKS Platform Integration | EKS- | Addon versions, Karpenter/CA, Pod Identity, GuardDuty |
+| 7 | CI/CD & GitOps | CICD- | Deployment strategy, image management, ArgoCD/Flux |
+| 8 | Image Security | IMG- | ECR scanning, CVE findings, lifecycle policies, base images |
+
+### Key Features
+
+- **Dynamic research** — queries latest best practices from context7 (K8s docs) and aws-knowledge-mcp-server (EKS docs) each time
+- **Version-aware** — detects K8s/EKS version and filters checks accordingly (e.g., PSA for 1.25+, PSP for <1.25)
+- **Baseline framework** — minimum check set ensures no critical area is missed
+- **Infrastructure integration** — optionally invokes `aws-best-practice-research` and merges results
+- **Per-workload granularity** — reports findings for each Deployment/StatefulSet individually
+
+### Report Outputs
+
+Reports are saved directly to local markdown files (not printed to terminal). File names
+use the format `YYYY-mm-dd-HH-MM-SS-{cluster}-{type}.md`:
+
+1. **Compliance Scorecard** → `{timestamp}-{cluster}-scorecard.md`
+2. **Structured Audit Report** → `{timestamp}-{cluster}-audit-report.md`
+3. **Detailed Markdown Report** → `{timestamp}-{cluster}-detailed-report.md`
+
+A brief summary (file paths, overall score, PASS/FAIL/WARN counts) is printed to the terminal.
+
+## Prerequisites
+
+- **aws-knowledge-mcp-server** — for EKS documentation search
+- **context7 MCP** — for K8s official documentation
+- **AWS CLI** — configured with access to the target EKS cluster and ECR
+- **kubectl** — configured to access the target EKS cluster
+
+## Usage
+
+Trigger this skill with phrases like:
+- "Assess my EKS workloads against best practices"
+- "Check K8s best practices for my cluster"
+- "Audit container workloads in my EKS cluster"
+- "Evaluate pod security configuration"
+
+Provide:
+- Cluster name and AWS region
+- (Optional) Specific namespaces or workloads to assess
+- (Optional) Whether to include infrastructure-layer assessment
+
+## File Structure
+
+```
+eks-workload-best-practice-assessment/
+  SKILL.md                              # Main workflow
+  README.md                             # This file
+  README_CN.md                          # Chinese version
+  references/
+    check-dimensions.md                 # 8 dimensions with baseline check items
+    kubectl-audit-commands.md           # kubectl command reference
+    search-queries.md                   # context7 + aws-knowledge-mcp queries
+    output-template.md                  # Detailed report template
+    audit-output-template.md            # Structured audit template
+    scorecard-template.md               # Scorecard template
+```
+
+## Related Skills
+
+- [aws-best-practice-research](../aws-best-practice-research/) — Infrastructure-layer assessment (control plane, node groups, addons)
+- [aws-service-chaos-research](../aws-service-chaos-research/) — Chaos engineering scenarios for resilience testing
+- [aws-fis-experiment-prepare](../aws-fis-experiment-prepare/) — FIS experiment configuration generation

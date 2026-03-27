@@ -327,10 +327,24 @@ Extract from all pages:
 Use the "Testing Methods (No Native FIS Actions)" section format from `references/output-template.md`,
 including both indirect FIS actions and AWS API/Console methods.
 
-### Step 6: Compile Output
+### Step 6: Compile Output and Save to Local File
 
-Output the report using the exact format defined in `references/output-template.md`.
-The report must include all sections in this order:
+**Write the report directly to a local markdown file** instead of outputting the full
+content to the terminal. Use the following file naming convention:
+
+```bash
+TIMESTAMP=$(date +%Y-%m-%d-%H-%M-%S)
+SERVICE_SLUG=$(echo "{SERVICE_NAME}" | tr '[:upper:]' '[:lower:]' | tr ' :/' '-')
+# File name: ${TIMESTAMP}-${SERVICE_SLUG}-chaos-research.md
+```
+
+For multi-service requests, generate **one file per service**:
+- `${TIMESTAMP}-rds-chaos-research.md`
+- `${TIMESTAMP}-eks-chaos-research.md`
+- etc.
+
+Compile the report content using the exact format defined in `references/output-template.md`
+and save it to the file. The report must include all sections in this order:
 
 1. **Executive Summary** — overview with region, FIS support status, key recommendation
 2. **Scenario Library and Cross-Cutting** — Scenario Library composite scenarios (highest priority), cross-cutting actions as optional supplement. **This section comes BEFORE per-service sections.**
@@ -339,6 +353,13 @@ The report must include all sections in this order:
 5. **Implementation Best Practices** — steady state, DNS/connection, blast radius
 6. **Reference Materials** — only URLs from actual search results or pages read
 7. **Next Steps** — 3-4 actionable next steps
+
+After saving, print a brief summary to the terminal listing only:
+- The file path(s) of the generated report(s)
+- Target service(s) and region
+- Number of FIS actions found (service-specific + cross-cutting)
+- Number of Scenario Library scenarios identified
+- Top 3 recommended test priorities
 
 ## Important Guidelines
 
