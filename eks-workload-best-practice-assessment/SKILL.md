@@ -188,8 +188,15 @@ For each finding, record:
 ### Step 7: Generate Report and Save to Local File
 
 Generate a single comprehensive report using the template in `references/output-template.md`
-and **write it directly to a local markdown file** (do NOT output the full report content
-to the terminal). Use the following file naming convention:
+and **write it directly to a local markdown file**.
+
+**IMPORTANT — File Writing Rules**:
+- Use the **Write/file tool** (not bash heredoc/echo/cat) to create the report file
+- If the report is too large for a single write, **split into sections**: write the
+  file with the first half, then use an append/edit operation to add the remaining sections
+- Do NOT output the full report content to the terminal
+
+Use the following file naming convention:
 
 ```bash
 TIMESTAMP=$(date +%Y-%m-%d-%H-%M-%S)
