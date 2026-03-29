@@ -167,10 +167,9 @@ aws ecr get-lifecycle-policy --repository-name {REPO}
 
 Filter collected data to the assessment scope (namespaces/workloads from Step 1).
 
-### Step 6: Per-Dimension Assessment — Output Structured Findings
+### Step 6: Per-Dimension Assessment
 
-For each check item from the research phase (Step 3), evaluate every in-scope workload
-and **write results to a JSON findings file** (do NOT generate the markdown report yet).
+For each check item from the research phase (Step 3), evaluate every in-scope workload:
 
 | Status | Meaning |
 |--------|---------|
@@ -179,37 +178,18 @@ and **write results to a JSON findings file** (do NOT generate the markdown repo
 | **WARN** | Cannot be fully verified, or partially meets the recommendation |
 | **N/A** | The check does not apply (e.g., storage checks for stateless workloads) |
 
-**Save findings to:** `${TIMESTAMP}-${CLUSTER_SLUG}-findings.json`
+For each finding, record:
+- Check item ID and name
+- Status (PASS/FAIL/WARN/N/A)
+- **Actual value** observed (not just "not configured")
+- The specific workload(s) affected
+- Version relevance notes (if any)
 
-Use the schema defined in `references/findings-schema.md`. Each finding object must include:
-- `check_id` — e.g., "WL-01-hi"
-- `check_name` — human-readable name
-- `dimension` — which of the 8 dimensions (or "infrastructure")
-- `priority` — "hi", "md", or "lo"
-- `status` — "PASS", "FAIL", "WARN", or "N/A"
-- `affected_workloads` — array of "namespace/name" strings
-- `finding` — actual observed value (not just "not configured")
-- `remediation` — fix action (only for FAIL/WARN items, null for PASS/N/A)
+### Step 7: Generate Report and Save to Local File
 
-Also include a `cluster_info` object at the top level with cluster name, region,
-K8s version, EKS platform version, node count, AZ distribution, instance types,
-assessed namespaces, workload counts, and assessment date.
-
-If infrastructure layer results exist from Step 4, include them as additional
-finding objects with `dimension: "infrastructure"`.
-
-**Why JSON first**: Separating assessment logic from report formatting makes each
-step faster and more reliable. The JSON file also enables future tooling (dashboards,
-CI/CD integration, diff between assessments).
-
-### Step 7: Generate Report from Findings
-
-Read the JSON findings file from Step 6, then generate the markdown report using
-the template in `references/output-template.md`. This step is **pure formatting** —
-no evaluation logic, just transform JSON into markdown tables.
-
-**Write the report directly to a local markdown file** (do NOT output the full report
-content to the terminal).
+Generate a single comprehensive report using the template in `references/output-template.md`
+and **write it directly to a local markdown file** (do NOT output the full report content
+to the terminal). Use the following file naming convention:
 
 ```bash
 TIMESTAMP=$(date +%Y-%m-%d-%H-%M-%S)
@@ -217,7 +197,7 @@ CLUSTER_SLUG=$(echo "{CLUSTER_NAME}" | tr '[:upper:]' '[:lower:]' | tr ' :/' '-'
 ```
 
 **Assessment Report** — see `references/output-template.md`
-- Full cluster overview (from `cluster_info` in JSON)
+- Full cluster overview
 - Compliance scorecard with rating scale, top 3 priorities, and quick stats
 - Dimension-by-dimension assessment tables
 - Per-workload detail section
@@ -225,11 +205,10 @@ CLUSTER_SLUG=$(echo "{CLUSTER_NAME}" | tr '[:upper:]' '[:lower:]' | tr ' :/' '-'
 - Data sources and reference links
 - **Save to:** `${TIMESTAMP}-${CLUSTER_SLUG}-assessment-report.md`
 
-Score calculation: read the JSON, count PASS/FAIL/WARN/N/A per dimension,
-apply the weighted scoring formula from `references/output-template.md`.
+If infrastructure layer results exist from Step 4, merge them into the report.
 
 After saving, print a brief summary to the terminal listing only:
-- The file paths of the findings JSON and assessment report
+- The file path of the generated report
 - Overall compliance score
 - Number of PASS / FAIL / WARN findings
 
