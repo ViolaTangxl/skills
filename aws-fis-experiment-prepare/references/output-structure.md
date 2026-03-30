@@ -135,7 +135,8 @@ See `references/scenario-templates.md` for scenario-specific templates.
 - Must be valid input for `aws fis create-experiment-template --cli-input-json`
 - All placeholder values must be replaced with actual values
 - `roleArn` should reference the IAM role created in the same workflow
-- `stopConditions` should reference the alarms created in the same workflow
+- `stopConditions` defaults to `[{"source": "none"}]`; only use
+  `"source": "aws:cloudwatch:alarm"` with an alarm ARN if the user explicitly provides one
 
 ---
 
@@ -233,21 +234,6 @@ Resources:
                   - logs:CreateLogStream
                 Resource: '*'
 
-  # --- CloudWatch Alarms (Stop Conditions) ---
-  StopConditionAlarm:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmName: !Sub 'FIS-StopCondition-${ExperimentName}'
-      AlarmDescription: 'Stop FIS experiment if critical threshold breached'
-      Namespace: '{METRIC_NAMESPACE}'
-      MetricName: '{METRIC_NAME}'
-      Statistic: '{STATISTIC}'
-      Period: 60
-      EvaluationPeriods: 1
-      Threshold: '{THRESHOLD}'
-      ComparisonOperator: '{COMPARISON}'
-      TreatMissingData: breaching
-
   # --- CloudWatch Dashboard ---
   ExperimentDashboard:
     Type: AWS::CloudWatch::Dashboard
@@ -257,11 +243,44 @@ Resources:
         {
           "widgets": [
             {
-              "type": "metric",
+              "type": "text",
+              "x": 0, "y": 0, "width": 24, "height": 1,
               "properties": {
-                "title": "{SERVICE} Health",
+                "markdown": "# FIS Experiment: ${ExperimentName} | Region: ${AWS::Region}"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0, "y": 1, "width": 12, "height": 6,
+              "properties": {
+                "title": "{SERVICE} Availability",
                 "metrics": [
-                  ["{NAMESPACE}", "{METRIC}", "{DIM_NAME}", "{DIM_VALUE}"]
+                  ["{NAMESPACE}", "{AVAILABILITY_METRIC}", "{DIM_NAME}", "{DIM_VALUE}"]
+                ],
+                "period": 60,
+                "region": "${AWS::Region}"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 12, "y": 1, "width": 12, "height": 6,
+              "properties": {
+                "title": "{SERVICE} Performance",
+                "metrics": [
+                  ["{NAMESPACE}", "{PERF_METRIC_1}", "{DIM_NAME}", "{DIM_VALUE}"],
+                  ["{NAMESPACE}", "{PERF_METRIC_2}", "{DIM_NAME}", "{DIM_VALUE}"]
+                ],
+                "period": 60,
+                "region": "${AWS::Region}"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0, "y": 7, "width": 12, "height": 6,
+              "properties": {
+                "title": "{SERVICE} Errors / Latency",
+                "metrics": [
+                  ["{NAMESPACE}", "{ERROR_METRIC}", "{DIM_NAME}", "{DIM_VALUE}"]
                 ],
                 "period": 60,
                 "region": "${AWS::Region}"
@@ -275,13 +294,11 @@ Resources:
     Type: AWS::FIS::ExperimentTemplate
     DependsOn:
       - FISExperimentRole
-      - StopConditionAlarm
     Properties:
       Description: !Sub 'FIS Experiment: ${ExperimentName}'
       RoleArn: !GetAtt FISExperimentRole.Arn
       StopConditions:
-        - Source: aws:cloudwatch:alarm
-          Value: !GetAtt StopConditionAlarm.Arn
+        - Source: 'none'
       Tags:
         Name: !Ref ExperimentName
         Scenario: '{SCENARIO_TYPE}'
@@ -289,6 +306,29 @@ Resources:
         # {targets definition matching experiment-template.json}
       Actions:
         # {actions definition matching experiment-template.json}
+
+  # --- (Optional) CloudWatch Alarm as Stop Condition ---
+  # Include the StopConditionAlarm resource below ONLY if the user explicitly
+  # provides a stop condition alarm. When included, also change the
+  # FISExperimentTemplate.StopConditions to:
+  #   StopConditions:
+  #     - Source: aws:cloudwatch:alarm
+  #       Value: !GetAtt StopConditionAlarm.Arn
+  # and add StopConditionAlarm to the DependsOn list.
+  #
+  # StopConditionAlarm:
+  #   Type: AWS::CloudWatch::Alarm
+  #   Properties:
+  #     AlarmName: !Sub 'FIS-StopCondition-${ExperimentName}'
+  #     AlarmDescription: 'Stop FIS experiment if critical threshold breached'
+  #     Namespace: '{METRIC_NAMESPACE}'
+  #     MetricName: '{METRIC_NAME}'
+  #     Statistic: '{STATISTIC}'
+  #     Period: 60
+  #     EvaluationPeriods: 1
+  #     Threshold: '{THRESHOLD}'
+  #     ComparisonOperator: '{COMPARISON}'
+  #     TreatMissingData: breaching
 
 Outputs:
   ExperimentTemplateId:
@@ -335,7 +375,10 @@ Array of CloudWatch alarm definitions for CLI creation:
 
 ## alarms/dashboard.json
 
-CloudWatch dashboard body JSON for CLI creation:
+CloudWatch dashboard body JSON for CLI creation. Include comprehensive per-service
+metrics grouped by: availability, performance, and errors/latency.
+
+Only include sections for services actually affected by the experiment.
 
 ```json
 {
@@ -347,23 +390,184 @@ CloudWatch dashboard body JSON for CLI creation:
                 "markdown": "# FIS Experiment: {SCENARIO_NAME} | Region: {REGION} | AZ: {AZ_ID}"
             }
         },
+
+        {"type": "text", "x": 0, "y": 1, "width": 24, "height": 1,
+         "properties": {"markdown": "## ALB Metrics"}},
         {
             "type": "metric",
-            "x": 0, "y": 1, "width": 12, "height": 6,
+            "x": 0, "y": 2, "width": 8, "height": 6,
             "properties": {
-                "title": "{SERVICE} Health",
+                "title": "Target Health",
                 "metrics": [
-                    ["{NAMESPACE}", "{METRIC}", "{DIM_NAME}", "{DIM_VALUE}"]
+                    ["AWS/ApplicationELB", "HealthyHostCount", "TargetGroup", "{TG}", "LoadBalancer", "{ALB}"],
+                    ["AWS/ApplicationELB", "UnHealthyHostCount", "TargetGroup", "{TG}", "LoadBalancer", "{ALB}"]
                 ],
-                "period": 60,
-                "stat": "Average",
-                "region": "{REGION}",
-                "view": "timeSeries"
+                "period": 60, "stat": "Average", "region": "{REGION}", "view": "timeSeries"
+            }
+        },
+        {
+            "type": "metric",
+            "x": 8, "y": 2, "width": 8, "height": 6,
+            "properties": {
+                "title": "Requests & Errors",
+                "metrics": [
+                    ["AWS/ApplicationELB", "RequestCount", "LoadBalancer", "{ALB}"],
+                    ["AWS/ApplicationELB", "HTTPCode_ELB_5XX_Count", "LoadBalancer", "{ALB}"],
+                    ["AWS/ApplicationELB", "HTTPCode_Target_5XX_Count", "TargetGroup", "{TG}", "LoadBalancer", "{ALB}"]
+                ],
+                "period": 60, "stat": "Sum", "region": "{REGION}", "view": "timeSeries"
+            }
+        },
+        {
+            "type": "metric",
+            "x": 16, "y": 2, "width": 8, "height": 6,
+            "properties": {
+                "title": "Latency & Connections",
+                "metrics": [
+                    ["AWS/ApplicationELB", "TargetResponseTime", "LoadBalancer", "{ALB}"],
+                    ["AWS/ApplicationELB", "ActiveConnectionCount", "LoadBalancer", "{ALB}"],
+                    ["AWS/ApplicationELB", "RejectedConnectionCount", "LoadBalancer", "{ALB}"]
+                ],
+                "period": 60, "stat": "Average", "region": "{REGION}", "view": "timeSeries"
+            }
+        },
+
+        {"type": "text", "x": 0, "y": 8, "width": 24, "height": 1,
+         "properties": {"markdown": "## EC2 Metrics"}},
+        {
+            "type": "metric",
+            "x": 0, "y": 9, "width": 12, "height": 6,
+            "properties": {
+                "title": "Instance Health",
+                "metrics": [
+                    ["AWS/EC2", "StatusCheckFailed", "InstanceId", "{INSTANCE_ID}"],
+                    ["AWS/EC2", "StatusCheckFailed_Instance", "InstanceId", "{INSTANCE_ID}"],
+                    ["AWS/EC2", "StatusCheckFailed_System", "InstanceId", "{INSTANCE_ID}"]
+                ],
+                "period": 60, "stat": "Maximum", "region": "{REGION}", "view": "timeSeries"
+            }
+        },
+        {
+            "type": "metric",
+            "x": 12, "y": 9, "width": 12, "height": 6,
+            "properties": {
+                "title": "CPU & Network",
+                "metrics": [
+                    ["AWS/EC2", "CPUUtilization", "InstanceId", "{INSTANCE_ID}"],
+                    ["AWS/EC2", "NetworkIn", "InstanceId", "{INSTANCE_ID}"],
+                    ["AWS/EC2", "NetworkOut", "InstanceId", "{INSTANCE_ID}"]
+                ],
+                "period": 60, "stat": "Average", "region": "{REGION}", "view": "timeSeries"
+            }
+        },
+
+        {"type": "text", "x": 0, "y": 15, "width": 24, "height": 1,
+         "properties": {"markdown": "## RDS / Aurora Metrics"}},
+        {
+            "type": "metric",
+            "x": 0, "y": 16, "width": 8, "height": 6,
+            "properties": {
+                "title": "Connections & Memory",
+                "metrics": [
+                    ["AWS/RDS", "DatabaseConnections", "DBInstanceIdentifier", "{DB_ID}"],
+                    ["AWS/RDS", "FreeableMemory", "DBInstanceIdentifier", "{DB_ID}"]
+                ],
+                "period": 60, "stat": "Average", "region": "{REGION}", "view": "timeSeries"
+            }
+        },
+        {
+            "type": "metric",
+            "x": 8, "y": 16, "width": 8, "height": 6,
+            "properties": {
+                "title": "Latency & IOPS",
+                "metrics": [
+                    ["AWS/RDS", "ReadLatency", "DBInstanceIdentifier", "{DB_ID}"],
+                    ["AWS/RDS", "WriteLatency", "DBInstanceIdentifier", "{DB_ID}"],
+                    ["AWS/RDS", "CommitLatency", "DBInstanceIdentifier", "{DB_ID}"],
+                    ["AWS/RDS", "ReadIOPS", "DBInstanceIdentifier", "{DB_ID}"],
+                    ["AWS/RDS", "WriteIOPS", "DBInstanceIdentifier", "{DB_ID}"]
+                ],
+                "period": 60, "stat": "Average", "region": "{REGION}", "view": "timeSeries"
+            }
+        },
+        {
+            "type": "metric",
+            "x": 16, "y": 16, "width": 8, "height": 6,
+            "properties": {
+                "title": "Replication",
+                "metrics": [
+                    ["AWS/RDS", "AuroraReplicaLag", "DBClusterIdentifier", "{CLUSTER_ID}"],
+                    ["AWS/RDS", "ReplicaLag", "DBInstanceIdentifier", "{DB_ID}"]
+                ],
+                "period": 60, "stat": "Average", "region": "{REGION}", "view": "timeSeries"
+            }
+        },
+
+        {"type": "text", "x": 0, "y": 22, "width": 24, "height": 1,
+         "properties": {"markdown": "## EKS Metrics"}},
+        {
+            "type": "metric",
+            "x": 0, "y": 23, "width": 12, "height": 6,
+            "properties": {
+                "title": "Pod Health",
+                "metrics": [
+                    ["ContainerInsights", "pod_number_of_running_pods", "ClusterName", "{CLUSTER}", "Namespace", "{NS}"],
+                    ["ContainerInsights", "pod_number_of_container_restarts", "ClusterName", "{CLUSTER}", "Namespace", "{NS}"]
+                ],
+                "period": 60, "stat": "Average", "region": "{REGION}", "view": "timeSeries"
+            }
+        },
+        {
+            "type": "metric",
+            "x": 12, "y": 23, "width": 12, "height": 6,
+            "properties": {
+                "title": "Node Health",
+                "metrics": [
+                    ["ContainerInsights", "node_cpu_utilization", "ClusterName", "{CLUSTER}"],
+                    ["ContainerInsights", "node_memory_utilization", "ClusterName", "{CLUSTER}"],
+                    ["ContainerInsights", "node_number_of_running_pods", "ClusterName", "{CLUSTER}"]
+                ],
+                "period": 60, "stat": "Average", "region": "{REGION}", "view": "timeSeries"
+            }
+        },
+
+        {"type": "text", "x": 0, "y": 29, "width": 24, "height": 1,
+         "properties": {"markdown": "## ElastiCache Metrics"}},
+        {
+            "type": "metric",
+            "x": 0, "y": 30, "width": 12, "height": 6,
+            "properties": {
+                "title": "Replication & Connections",
+                "metrics": [
+                    ["AWS/ElastiCache", "ReplicationLag", "ReplicationGroupId", "{RG_ID}"],
+                    ["AWS/ElastiCache", "EngineCPUUtilization", "ReplicationGroupId", "{RG_ID}"],
+                    ["AWS/ElastiCache", "CurrConnections", "ReplicationGroupId", "{RG_ID}"],
+                    ["AWS/ElastiCache", "NewConnections", "ReplicationGroupId", "{RG_ID}"]
+                ],
+                "period": 60, "stat": "Average", "region": "{REGION}", "view": "timeSeries"
+            }
+        },
+        {
+            "type": "metric",
+            "x": 12, "y": 30, "width": 12, "height": 6,
+            "properties": {
+                "title": "Cache Performance",
+                "metrics": [
+                    ["AWS/ElastiCache", "CacheHitRate", "ReplicationGroupId", "{RG_ID}"],
+                    ["AWS/ElastiCache", "CacheMisses", "ReplicationGroupId", "{RG_ID}"],
+                    ["AWS/ElastiCache", "Evictions", "ReplicationGroupId", "{RG_ID}"]
+                ],
+                "period": 60, "stat": "Average", "region": "{REGION}", "view": "timeSeries"
             }
         }
     ]
 }
 ```
+
+**Notes:**
+- Remove widget sections for services not involved in the experiment
+- Add application-specific custom metrics if the user provides them
+- Adjust `y` coordinates when removing service sections to keep layout compact
 
 ---
 

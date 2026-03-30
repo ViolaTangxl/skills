@@ -24,7 +24,7 @@
    - [跨 Region 连接](https://docs.aws.amazon.com/en_us/fis/latest/userguide/cross-region-scenario.html)
 3. **发现目标资源** — 查询用户实际的 AWS 资源，收集目标标识。
 3. **验证兼容性** — 通过 AWS CLI 检查实际资源（如 `describe-db-instances`、`describe-db-clusters`），与 FIS Action 的 `resourceType` 要求交叉校验，在生成任何文件之前完成。
-4. **确定监控配置** — 根据受影响的服务确定 Stop Condition 告警和 Dashboard 指标。
+4. **确定监控配置** — 默认使用 `source: "none"`（不绑定 Stop Condition 告警）。仅在用户明确提供告警时才创建 CloudWatch Alarm。生成包含各服务可用性、性能和错误/延迟指标的综合 CloudWatch Dashboard。
 5. **生成配置文件** — 生成包含 7 个文件的自包含目录：实验模板、IAM 策略、CFN 模板、告警、Dashboard、预期行为文档和 README。
 6. **自动修复部署** — 部署 CFN 模板，若部署失败则自动分析错误、修复模板、删除失败 Stack、重试（最多 5 次）。
 7. **保存摘要报告** — 将准备结果写入本地 Markdown 文件（`YYYY-mm-dd-HH-MM-SS-{scenario}-prepare-summary.md`），终端仅打印简要摘要。

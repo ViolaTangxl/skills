@@ -24,7 +24,7 @@ Preparing an AWS FIS experiment manually involves several error-prone, tedious s
    - [Cross-Region Connectivity](https://docs.aws.amazon.com/en_us/fis/latest/userguide/cross-region-scenario.html)
 3. **Discovers target resources** — Queries the user's actual AWS resources and collects target identifiers.
 3. **Validates compatibility** — Inspects actual resources via AWS CLI (e.g., `describe-db-instances`, `describe-db-clusters`) and cross-checks against FIS action `resourceType` requirements before generating any files.
-4. **Determines monitoring configuration** — Identifies stop condition alarms and dashboard metrics based on affected services.
+4. **Determines monitoring configuration** — Defaults to `source: "none"` (no stop condition alarm). Only creates CloudWatch alarms if the user explicitly provides one. Generates a comprehensive CloudWatch dashboard with per-service availability, performance, and error/latency metrics.
 5. **Generates configuration files** — Produces a self-contained directory with 7 files: experiment template, IAM policy, CFN template, alarms, dashboard, expected-behavior doc, and README.
 6. **Deploys with self-healing** — Deploys the CFN template, and if deployment fails, automatically analyzes errors, fixes the template, deletes the failed stack, and retries (up to 5 times).
 7. **Saves summary report** — Writes preparation results to a local markdown file (`YYYY-mm-dd-HH-MM-SS-{scenario}-prepare-summary.md`) and prints a brief summary to the terminal.

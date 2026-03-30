@@ -187,8 +187,7 @@ to simulate a complete AZ power failure.
     },
     "stopConditions": [
         {
-            "source": "aws:cloudwatch:alarm",
-            "value": "{STOP_CONDITION_ALARM_ARN}"
+            "source": "none"
         }
     ],
     "roleArn": "{FIS_EXECUTION_ROLE_ARN}"
@@ -200,6 +199,8 @@ to simulate a complete AZ power failure.
 - Sub-actions with no matching targets are automatically skipped by FIS
 - The `startAfter` field can be used to sequence actions (e.g., network disruption
   before RDS failover)
+- If the user provides a stop condition alarm, replace `"source": "none"` with
+  `"source": "aws:cloudwatch:alarm"` and add `"value": "{ALARM_ARN}"`
 
 ---
 
@@ -253,8 +254,7 @@ Adds latency between resources within a single AZ.
     },
     "stopConditions": [
         {
-            "source": "aws:cloudwatch:alarm",
-            "value": "{STOP_CONDITION_ALARM_ARN}"
+            "source": "none"
         }
     ],
     "roleArn": "{FIS_EXECUTION_ROLE_ARN}"
@@ -312,8 +312,7 @@ For custom FIS actions, use this generic template:
     },
     "stopConditions": [
         {
-            "source": "aws:cloudwatch:alarm",
-            "value": "{STOP_CONDITION_ALARM_ARN}"
+            "source": "none"
         }
     ],
     "roleArn": "{FIS_EXECUTION_ROLE_ARN}"
@@ -356,7 +355,7 @@ Simple single-action scenarios using SSM documents.
             "targets": {"Instances": "instances"}
         }
     },
-    "stopConditions": [{"source": "aws:cloudwatch:alarm", "value": "{ALARM_ARN}"}],
+    "stopConditions": [{"source": "none"}],
     "roleArn": "{ROLE_ARN}"
 }
 ```

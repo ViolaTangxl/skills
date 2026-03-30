@@ -226,10 +226,18 @@ fine), but if the user's **primary** resource fails validation, stop and report.
 
 Based on the scenario and affected services, determine:
 
-#### Stop Condition Alarms
+#### Stop Conditions
 
-For each affected service, identify the critical metric that should trigger an
-experiment stop if things go wrong beyond expectations:
+**Default: `source: "none"` (no alarm).** The experiment template is created without
+binding any CloudWatch Alarm as stop condition. This keeps the setup simple and lets
+the experiment run to completion.
+
+If the user explicitly provides a CloudWatch Alarm ARN or asks to set up a stop
+condition alarm, then use `source: "aws:cloudwatch:alarm"` with the alarm ARN. In
+that case, also create the alarm resource in the CFN template and the
+`alarms/stop-condition-alarms.json` file.
+
+**Reference — useful alarm metrics if the user wants stop conditions:**
 
 | Service | Metric | Namespace | Threshold Logic |
 |---|---|---|---|
@@ -240,18 +248,28 @@ experiment stop if things go wrong beyond expectations:
 | ALB | `HTTPCode_ELB_5XX_Count` | AWS/ApplicationELB | > threshold |
 | Application | User-defined | Custom | User-defined |
 
-Ask the user:
-- Do you have existing CloudWatch alarms to use as stop conditions?
-- What is your application's error rate threshold?
-- Any custom metrics to monitor?
-
 #### Dashboard Metrics
 
-For observation during the experiment, include:
-- All stop condition metrics
-- Service-specific health metrics
-- Application-level metrics (if provided)
-- Experiment status (manual check via CLI)
+The CloudWatch dashboard is the primary tool for observing experiment impact and
+recovery. Include **comprehensive, per-service metrics** for all affected services:
+
+| Service | Metrics to Include |
+|---|---|
+| **EC2** | `StatusCheckFailed`, `StatusCheckFailed_Instance`, `StatusCheckFailed_System`, `CPUUtilization`, `NetworkIn`, `NetworkOut`, `NetworkPacketsIn`, `NetworkPacketsOut` |
+| **RDS/Aurora** | `DatabaseConnections`, `ReadLatency`, `WriteLatency`, `CommitLatency`, `ReadIOPS`, `WriteIOPS`, `AuroraReplicaLag`, `ReplicaLag`, `FreeableMemory` |
+| **EKS** | `pod_number_of_running_pods`, `pod_number_of_container_restarts`, `node_cpu_utilization`, `node_memory_utilization`, `node_number_of_running_pods` |
+| **ElastiCache** | `ReplicationLag`, `EngineCPUUtilization`, `CurrConnections`, `NewConnections`, `CacheHitRate`, `CacheMisses`, `Evictions` |
+| **ALB** | `HealthyHostCount`, `UnHealthyHostCount`, `RequestCount`, `HTTPCode_ELB_5XX_Count`, `HTTPCode_Target_5XX_Count`, `TargetResponseTime`, `ActiveConnectionCount`, `RejectedConnectionCount` |
+| **NLB** | `ActiveFlowCount`, `NewFlowCount`, `TCP_Client_Reset_Count`, `TCP_Target_Reset_Count` |
+| **Application** | User-defined custom metrics |
+
+**Dashboard layout:** Group widgets by service. Each service section has:
+1. Text header widget with service name
+2. Availability / health metrics widget
+3. Performance / throughput metrics widget
+4. Error / latency metrics widget
+
+Only include sections for services actually affected by the experiment.
 
 ### Step 5: Generate Configuration Files
 
@@ -269,10 +287,10 @@ Generate files following the templates in `references/output-structure.md`:
 2. **iam-policy.json** — IAM permissions needed by the FIS execution role
 3. **cfn-template.yaml** — CloudFormation template containing ALL resources:
    - IAM Role + Policy
-   - CloudWatch Alarms (stop conditions)
-   - CloudWatch Dashboard
-   - FIS Experiment Template
-4. **alarms/stop-condition-alarms.json** — Standalone alarm definitions
+   - CloudWatch Dashboard (comprehensive per-service metrics)
+   - FIS Experiment Template (default `Source: 'none'`)
+   - CloudWatch Alarm — **only if user provided a stop condition**
+4. **alarms/stop-condition-alarms.json** — Standalone alarm definitions (**only if user provided a stop condition**; otherwise skip)
 5. **alarms/dashboard.json** — CloudWatch dashboard body
 6. **expected-behavior.md** — Detailed expected behavior documentation
 7. **README.md** — Experiment overview and execution instructions
