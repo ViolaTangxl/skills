@@ -1,3 +1,5 @@
+[English](README.md) | [中文](README_CN.md)
+
 # panlm/skills
 
 A collection of agent skills for AWS operations, best practices research, and cloud infrastructure management.
