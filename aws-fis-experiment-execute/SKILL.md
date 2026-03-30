@@ -233,6 +233,8 @@ aws fis get-experiment \
 - Poll every 30 seconds for the first 5 minutes
 - Poll every 60 seconds after that
 - Show current status after each poll
+- **Record timestamps** for each status change and action state transition — these
+  feed into the timeline section of the final report
 
 **Status values:**
 - `initiating` — Experiment is starting
@@ -263,6 +265,12 @@ SCENARIO_SLUG=$(echo "{SCENARIO_NAME}" | tr '[:upper:]' '[:lower:]' | tr ' :/' '
 # Save the file in the experiment directory (${EXPERIMENT_DIR})
 ```
 
+**Timeline emphasis:** All timestamps in the report MUST use full ISO 8601 format with
+timezone (e.g., `2025-03-30T14:05:32+08:00`). Include a dedicated timeline section so
+the customer can directly correlate events with CloudWatch Dashboard metrics. This is
+critical for post-experiment analysis — without clear timestamps, the customer cannot
+match experiment phases to metric changes on their dashboards.
+
 The results report file must include:
 
 ```markdown
@@ -275,11 +283,24 @@ The results report file must include:
 **End Time:**      {END_TIME}
 **Duration:**      {ACTUAL_DURATION}
 
+### Experiment Timeline
+
+Provide a chronological timeline of all key events with full timestamps. The customer
+uses this to correlate with CloudWatch Dashboard metrics.
+
+| Time (UTC) | Event | Details |
+|---|---|---|
+| {TIMESTAMP} | Experiment started | Template: {TEMPLATE_ID} |
+| {TIMESTAMP} | Action `{action_name}` started | Target: {target_info} |
+| {TIMESTAMP} | Action `{action_name}` completed | Status: {status} |
+| {TIMESTAMP} | Stop condition triggered (if any) | Alarm: {alarm_name} |
+| {TIMESTAMP} | Experiment ended | Final status: {FINAL_STATUS} |
+
 ### Action Results
 
-| Action | Status | Start | End |
-|---|---|---|---|
-| {action_name} | {status} | {start} | {end} |
+| Action | Status | Start | End | Duration |
+|---|---|---|---|---|
+| {action_name} | {status} | {start} | {end} | {duration} |
 
 ### Observations
 
@@ -294,7 +315,8 @@ The results report file must include:
 ### Next Steps
 
 1. Verify all resources have recovered (see expected-behavior.md)
-2. Check CloudWatch dashboard for metric recovery
+2. Check CloudWatch dashboard for metric recovery — use the timeline above to
+   identify the exact time windows to inspect on your dashboard
 3. Review experiment logs (if logging was enabled)
 4. {cleanup instructions}
 ```
@@ -302,7 +324,8 @@ The results report file must include:
 After saving the file, print a brief summary to the terminal listing only:
 - The file path of the saved results report
 - Experiment ID and final status
-- Start time, end time, and duration
+- Start time, end time, and duration (all timestamps in ISO 8601 with timezone)
+- Key timeline events with timestamps (experiment start, each action start/end, experiment end)
 - Per-action status (one line each)
 - Cleanup instructions
 

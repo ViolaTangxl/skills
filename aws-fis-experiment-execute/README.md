@@ -19,8 +19,8 @@ Running an AWS FIS experiment after preparation still involves multiple manual s
 2. **Deploys resources** via the user's chosen method (CLI step-by-step or CloudFormation).
 3. **Enforces safety** — presents a clear impact warning with affected resources, requires explicit user confirmation before starting.
 4. **Starts the experiment** only after explicit user confirmation.
-5. **Monitors progress** — polls experiment status every 30-60 seconds, reminds user to check the dashboard and expected-behavior doc.
-6. **Saves results report** — writes the experiment results to a local markdown file (`YYYY-mm-dd-HH-MM-SS-{scenario}-experiment-results.md`) and prints a brief summary to the terminal.
+5. **Monitors progress** — polls experiment status every 30-60 seconds, records timestamps for each status change, reminds user to check the dashboard and expected-behavior doc.
+6. **Saves results report** — writes the experiment results to a local markdown file (`YYYY-mm-dd-HH-MM-SS-{scenario}-experiment-results.md`) with a dedicated **timeline section** (all timestamps in ISO 8601 with timezone) so customers can correlate events with CloudWatch Dashboard metrics. Prints a brief summary to the terminal.
 
 ## Workflow Overview
 
@@ -41,6 +41,7 @@ Step 4: Start experiment [CRITICAL — requires explicit user confirmation]
 Step 5: Monitor experiment
          ├── Poll status every 30s (first 5 min) then 60s
          ├── Show current status after each poll
+         ├── Record timestamps for each status change and action transition
          └── Remind user: check dashboard, read expected-behavior.md
          ↓
 Step 6: Save results report to local file (YYYY-mm-dd-HH-MM-SS-{scenario}-experiment-results.md)
@@ -79,12 +80,13 @@ YYYY-mm-dd-HH-MM-SS-{scenario}-experiment-results.md
 
 The report includes:
 - Experiment ID, template ID, final status
-- Start time, end time, actual duration
-- Per-action status table
+- Start time, end time, actual duration (all timestamps in ISO 8601 with timezone)
+- **Experiment timeline** — chronological table of all key events (experiment start, each action start/end, stop condition triggers, experiment end) with full timestamps for direct correlation with CloudWatch Dashboard metrics
+- Per-action status table (with duration per action)
 - Observations and analysis based on the outcome
-- Next steps (recovery verification, dashboard review, cleanup)
+- Next steps (recovery verification, dashboard review with time window guidance, cleanup)
 
-A brief summary is printed to the terminal.
+A brief summary is printed to the terminal, including key timeline events with timestamps.
 
 ## Required Files
 

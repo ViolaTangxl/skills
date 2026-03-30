@@ -19,8 +19,8 @@
 2. **部署资源** — 按用户选择的方式（CLI 逐步或 CloudFormation）部署。
 3. **强制安全确认** — 展示清晰的影响警告（受影响资源列表），要求用户明确确认后才启动。
 4. **启动实验** — 仅在用户明确确认后执行。
-5. **监控进度** — 每 30-60 秒轮询实验状态，提醒用户查看 Dashboard 和预期行为文档。
-6. **保存结果报告** — 将实验结果写入本地 Markdown 文件（`YYYY-mm-dd-HH-MM-SS-{scenario}-experiment-results.md`），终端仅打印简要摘要。
+5. **监控进度** — 每 30-60 秒轮询实验状态，记录每次状态变更的时间戳，提醒用户查看 Dashboard 和预期行为文档。
+6. **保存结果报告** — 将实验结果写入本地 Markdown 文件（`YYYY-mm-dd-HH-MM-SS-{scenario}-experiment-results.md`），包含专门的**时间线章节**（所有时间戳使用 ISO 8601 格式带时区），方便客户将事件与 CloudWatch Dashboard 指标直接对应。终端仅打印简要摘要。
 
 ## 工作流程概览
 
@@ -41,6 +41,7 @@
 步骤 5: 监控实验
          ├── 前 5 分钟每 30 秒轮询，之后每 60 秒
          ├── 每次轮询后显示当前状态
+         ├── 记录每次状态变更和 Action 转换的时间戳
          └── 提醒用户：查看 Dashboard，阅读 expected-behavior.md
          ↓
 步骤 6: 保存结果报告到本地文件 (YYYY-mm-dd-HH-MM-SS-{scenario}-experiment-results.md)
@@ -78,12 +79,13 @@ YYYY-mm-dd-HH-MM-SS-{scenario}-experiment-results.md
 
 报告包含：
 - 实验 ID、模板 ID、最终状态
-- 开始时间、结束时间、实际时长
-- 各 Action 状态表
+- 开始时间、结束时间、实际时长（所有时间戳使用 ISO 8601 格式带时区）
+- **实验时间线** — 按时间顺序列出所有关键事件（实验启动、各 Action 启停、Stop Condition 触发、实验结束）的完整时间戳，方便直接对照 CloudWatch Dashboard 指标
+- 各 Action 状态表（含每个 Action 的持续时间）
 - 基于结果的观察分析
-- 下一步（恢复验证、Dashboard 查看、清理）
+- 下一步（恢复验证、Dashboard 查看并指引对应时间窗口、清理）
 
-终端打印简要摘要。
+终端打印简要摘要，包含关键时间线事件及时间戳。
 
 ## 必需文件
 
