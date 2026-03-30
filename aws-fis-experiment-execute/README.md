@@ -19,8 +19,8 @@ Running an AWS FIS experiment after preparation still involves multiple manual s
 2. **Deploys resources** via the user's chosen method (CLI step-by-step or CloudFormation).
 3. **Enforces safety** — presents a clear impact warning with affected resources, requires explicit user confirmation before starting.
 4. **Starts the experiment** only after explicit user confirmation.
-5. **Monitors progress** — polls experiment status every 30-60 seconds, records timestamps for each status change, reminds user to check the dashboard and expected-behavior doc.
-6. **Saves results report** — writes the experiment results to a local markdown file (`YYYY-mm-dd-HH-MM-SS-{scenario}-experiment-results.md`) with a dedicated **timeline section** (all timestamps in ISO 8601 with timezone) so customers can correlate events with CloudWatch Dashboard metrics. Prints a brief summary to the terminal.
+5. **Monitors progress** — polls experiment status every 30-60 seconds, records timestamps for each status change and per-service events, reminds user to check the dashboard and expected-behavior doc.
+6. **Saves results report** — writes the experiment results to a local markdown file (`YYYY-mm-dd-HH-MM-SS-{scenario}-experiment-results.md`) with **per-service impact analysis** where each service has its own timeline, observations, and key findings — so readers can see the full picture for each service without jumping between sections. Prints a brief summary to the terminal.
 
 ## Workflow Overview
 
@@ -81,12 +81,17 @@ YYYY-mm-dd-HH-MM-SS-{scenario}-experiment-results.md
 The report includes:
 - Experiment ID, template ID, final status
 - Start time, end time, actual duration (all timestamps in ISO 8601 with timezone)
-- **Experiment timeline** — chronological table of all key events (experiment start, each action start/end, stop condition triggers, experiment end) with full timestamps for direct correlation with CloudWatch Dashboard metrics
-- Per-action status table (with duration per action)
-- Observations and analysis based on the outcome
-- Next steps (recovery verification, dashboard review with time window guidance, cleanup)
+- Per-action results table (with action ID, status, and duration per action)
+- Stop condition alarm status table
+- **Per-service impact analysis** — for each service in `expected-behavior.md`, a dedicated sub-section containing:
+  - **Key timeline** — only the events relevant to that specific service (timestamps in ISO 8601 with timezone), so readers can correlate with CloudWatch Dashboard metrics without leaving the section
+  - **Observations** — observed behavior during and after the experiment
+  - **Key findings** — what happened, why, and recovery behavior
+- Recovery status summary table
+- Issues requiring attention (with remediation commands)
+- Cleanup instructions
 
-A brief summary is printed to the terminal, including key timeline events with timestamps.
+A brief summary is printed to the terminal, including per-service recovery status.
 
 ## Required Files
 
