@@ -269,9 +269,11 @@ SCENARIO_SLUG=$(echo "{SCENARIO_NAME}" | tr '[:upper:]' '[:lower:]' | tr ' :/' '
 # Save the file in the experiment directory (${EXPERIMENT_DIR})
 ```
 
-**Timeline emphasis:** All timestamps in the report MUST use ISO 8601 format with
-timezone, precise to the **second** — no milliseconds (e.g., `2025-03-30T14:05:32+08:00`,
-NOT `2025-03-30T14:05:32.123+08:00`). Timeline events are embedded directly
+**Timeline emphasis:** Timestamps in the report header (Start Time, End Time) use full
+ISO 8601 with timezone (e.g., `2025-03-30T14:05:32+08:00`). However, in timeline tables
+and action results, use **time-only format in UTC** (e.g., `05:05:32`) — the report date
+is already in the header, so repeating the date on every row adds clutter. Mark the
+column header as "Time (UTC)" so the timezone is clear. No milliseconds anywhere. Timeline events are embedded directly
 into each service's impact analysis section — do NOT create a separate standalone
 timeline section. This allows readers to see the full picture (timeline + impact +
 findings) for each service without jumping between sections.
@@ -297,9 +299,9 @@ The results report file must include:
 
 ### Action Results
 
-| Action | Action ID | Status | Start | End | Duration |
+| Action | Action ID | Status | Start (UTC) | End (UTC) | Duration |
 |---|---|---|---|---|---|
-| {action_name} | {action_id} | {status} | {start} | {end} | {duration} |
+| {action_name} | {action_id} | {status} | {HH:MM:SS} | {HH:MM:SS} | {duration} |
 
 ### Stop Condition Alarms
 
@@ -317,10 +319,10 @@ disruption even without a dedicated FIS action).
 
 **Key Timeline:**
 
-| Time | Event |
+| Time (UTC) | Event |
 |---|---|
-| {TIMESTAMP} | {event relevant to THIS service only} |
-| {TIMESTAMP} | {next event relevant to THIS service} |
+| {HH:MM:SS} | {event relevant to THIS service only} |
+| {HH:MM:SS} | {next event relevant to THIS service} |
 | ... | ... |
 
 **Observations:**
