@@ -269,8 +269,9 @@ SCENARIO_SLUG=$(echo "{SCENARIO_NAME}" | tr '[:upper:]' '[:lower:]' | tr ' :/' '
 # Save the file in the experiment directory (${EXPERIMENT_DIR})
 ```
 
-**Timeline emphasis:** All timestamps in the report MUST use full ISO 8601 format with
-timezone (e.g., `2025-03-30T14:05:32+08:00`). Timeline events are embedded directly
+**Timeline emphasis:** All timestamps in the report MUST use ISO 8601 format with
+timezone, precise to the **second** — no milliseconds (e.g., `2025-03-30T14:05:32+08:00`,
+NOT `2025-03-30T14:05:32.123+08:00`). Timeline events are embedded directly
 into each service's impact analysis section — do NOT create a separate standalone
 timeline section. This allows readers to see the full picture (timeline + impact +
 findings) for each service without jumping between sections.
