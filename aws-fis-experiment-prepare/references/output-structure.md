@@ -26,12 +26,22 @@ All placeholders use `{CURLY_BRACES}` notation.
 
 ## README.md
 
+**Key placeholders to replace after CFN deployment:**
+- `{STACK_NAME}` — The actual deployed CloudFormation stack name (e.g., `fis-az-power-interruption-20260331-143022`)
+- `{TEMPLATE_ID}` — The FIS experiment template ID from stack outputs
+- `{DASHBOARD_URL}` — The CloudWatch dashboard URL from stack outputs
+
+**IMPORTANT:** After successful CFN deployment, update all `{STACK_NAME}` placeholders in
+the README with the actual stack name. Do NOT leave generic placeholders in the final
+output — users need the exact stack name for cleanup commands.
+
 ```markdown
 # FIS Experiment: {Scenario Name}
 
 **Region:** {REGION}
 **Target AZ:** {AZ_ID} (if applicable)
 **Created:** {TIMESTAMP}
+**CFN Stack:** {STACK_NAME}
 **Estimated Duration:** {DURATION}
 
 ## Overview
@@ -85,16 +95,23 @@ aws fis start-experiment \
 
 ### Option 2: CloudFormation (All-in-One)
 
+**Note:** If the CFN stack was already deployed by the prepare skill, skip the deploy
+command and use the stack outputs directly.
+
 ```bash
+# Stack name (already deployed by prepare skill):
+# {STACK_NAME}
+
+# If you need to redeploy:
 aws cloudformation deploy \
   --template-file cfn-template.yaml \
-  --stack-name fis-{SCENARIO}-{TIMESTAMP} \
+  --stack-name {STACK_NAME} \
   --capabilities CAPABILITY_NAMED_IAM \
   --region {REGION}
 
 # After stack creation, start the experiment:
 TEMPLATE_ID=$(aws cloudformation describe-stacks \
-  --stack-name fis-{SCENARIO}-{TIMESTAMP} \
+  --stack-name {STACK_NAME} \
   --query 'Stacks[0].Outputs[?OutputKey==`ExperimentTemplateId`].OutputValue' \
   --output text --region {REGION})
 
@@ -111,17 +128,21 @@ aws fis start-experiment \
 
 ## Cleanup
 
-### CLI cleanup:
+### CFN cleanup (recommended):
+```bash
+# Delete the entire stack (removes all resources including IAM role, alarms, dashboard):
+aws cloudformation delete-stack --stack-name {STACK_NAME} --region {REGION}
+
+# Wait for deletion to complete:
+aws cloudformation wait stack-delete-complete --stack-name {STACK_NAME} --region {REGION}
+```
+
+### CLI cleanup (if resources were created manually):
 ```bash
 aws fis delete-experiment-template --id {TEMPLATE_ID} --region {REGION}
 aws iam delete-role-policy --role-name FISExperimentRole-{SCENARIO} --policy-name FISExperimentPolicy
 aws iam delete-role --role-name FISExperimentRole-{SCENARIO}
 # Delete alarms...
-```
-
-### CFN cleanup:
-```bash
-aws cloudformation delete-stack --stack-name fis-{SCENARIO}-{TIMESTAMP} --region {REGION}
 ```
 ```
 

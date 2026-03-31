@@ -321,8 +321,16 @@ Do NOT proceed to deployment until validation passes.
 
 #### 6b. Deploy the Stack
 
+**IMPORTANT:** Use the SAME timestamp for both output directory and stack name to ensure
+consistency. Extract the timestamp from the output directory name rather than generating
+a new one.
+
 ```bash
-STACK_NAME="fis-${SCENARIO_SLUG}-$(date +%Y%m%d-%H%M%S)"
+# Extract timestamp from OUTPUT_DIR (format: scenario-slug-YYYY-MM-DD-HH-MM-SS)
+# Convert to stack-name-friendly format (remove extra hyphens in date portion)
+DIR_TIMESTAMP=$(basename "${OUTPUT_DIR}" | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{2}-[0-9]{2}-[0-9]{2}$')
+STACK_TIMESTAMP=$(echo "${DIR_TIMESTAMP}" | sed 's/\([0-9]\{4\}\)-\([0-9]\{2\}\)-\([0-9]\{2\}\)-/\1\2\3-/')
+STACK_NAME="fis-${SCENARIO_SLUG}-${STACK_TIMESTAMP}"
 
 aws cloudformation deploy \
   --template-file "${OUTPUT_DIR}/cfn-template.yaml" \
@@ -331,6 +339,10 @@ aws cloudformation deploy \
   --region ${TARGET_REGION} \
   --no-fail-on-empty-changeset
 ```
+
+**Example mapping:**
+- Output directory: `az-power-interruption-2026-03-31-14-30-22`
+- Stack name: `fis-az-power-interruption-20260331-143022`
 
 #### 6c. Self-Healing Iteration Loop
 
@@ -426,10 +438,11 @@ After the stack deploys successfully:
    alarm ARNs) so it stays in sync with what was actually deployed.
 
 3. **Update `README.md`** to include:
-   - The actual stack name
-   - The experiment template ID
-   - The CloudWatch dashboard URL
-   - Cleanup command for this specific stack
+   - The actual stack name (`${STACK_NAME}` — e.g., `fis-az-power-interruption-20260331-143022`)
+   - The experiment template ID from stack outputs
+   - The CloudWatch dashboard URL from stack outputs
+   - **Cleanup command with the EXACT stack name** — do NOT use placeholders like
+     `{TIMESTAMP}` in the final README; replace with the actual deployed stack name
 
 ### Step 7: Save Summary Report to Local File
 
@@ -481,7 +494,14 @@ The summary report file must include:
 ## Next Step
 To start the experiment:
 - Use aws-fis-experiment-execute skill, OR
-- Manually: `aws fis start-experiment --experiment-template-id {ID} --region {REGION}`
+- Manually: `aws fis start-experiment --experiment-template-id {TEMPLATE_ID} --region {TARGET_REGION}`
+
+## Cleanup
+To delete all resources after the experiment:
+```bash
+aws cloudformation delete-stack --stack-name {STACK_NAME} --region {TARGET_REGION}
+aws cloudformation wait stack-delete-complete --stack-name {STACK_NAME} --region {TARGET_REGION}
+```
 ```
 
 After saving the file, print a brief summary to the terminal listing only:
