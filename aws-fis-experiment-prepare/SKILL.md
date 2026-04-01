@@ -277,7 +277,7 @@ Create the output directory:
 ```bash
 SCENARIO_SLUG=$(echo "SCENARIO_NAME" | tr '[:upper:]' '[:lower:]' | tr ' :' '-' | tr -d ',')
 TIMESTAMP=$(date +%Y-%m-%d-%H-%M-%S)
-OUTPUT_DIR="./${SCENARIO_SLUG}-${TIMESTAMP}"
+OUTPUT_DIR="./${TIMESTAMP}-${SCENARIO_SLUG}"
 mkdir -p "${OUTPUT_DIR}/alarms"
 ```
 
@@ -326,9 +326,9 @@ consistency. Extract the timestamp from the output directory name rather than ge
 a new one.
 
 ```bash
-# Extract timestamp from OUTPUT_DIR (format: scenario-slug-YYYY-MM-DD-HH-MM-SS)
+# Extract timestamp from OUTPUT_DIR (format: YYYY-MM-DD-HH-MM-SS-scenario-slug)
 # Convert to stack-name-friendly format (remove extra hyphens in date portion)
-DIR_TIMESTAMP=$(basename "${OUTPUT_DIR}" | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{2}-[0-9]{2}-[0-9]{2}$')
+DIR_TIMESTAMP=$(basename "${OUTPUT_DIR}" | grep -oE '^[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{2}-[0-9]{2}-[0-9]{2}')
 STACK_TIMESTAMP=$(echo "${DIR_TIMESTAMP}" | sed 's/\([0-9]\{4\}\)-\([0-9]\{2\}\)-\([0-9]\{2\}\)-/\1\2\3-/')
 STACK_NAME="fis-${SCENARIO_SLUG}-${STACK_TIMESTAMP}"
 
@@ -341,7 +341,7 @@ aws cloudformation deploy \
 ```
 
 **Example mapping:**
-- Output directory: `az-power-interruption-2026-03-31-14-30-22`
+- Output directory: `2026-03-31-14-30-22-az-power-interruption`
 - Stack name: `fis-az-power-interruption-20260331-143022`
 
 #### 6c. Self-Healing Iteration Loop

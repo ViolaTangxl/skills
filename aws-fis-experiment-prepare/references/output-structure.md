@@ -6,7 +6,7 @@ All placeholders use `{CURLY_BRACES}` notation.
 ## Directory Layout
 
 ```
-./{scenario-slug}-{yyyy-mm-dd-HH-MM-SS}/
+./{yyyy-mm-dd-HH-MM-SS}-{scenario-slug}/
 ├── README.md
 ├── experiment-template.json
 ├── iam-policy.json

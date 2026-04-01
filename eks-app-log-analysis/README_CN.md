@@ -100,7 +100,7 @@
 
 ```
 # 实时监控（实验期间）
-"分析 ./az-power-interruption-2026-03-31/ 目录的应用日志"
+"分析 ./2026-03-31-az-power-interruption/ 目录的应用日志"
 "监控实验期间的应用表现"
 "Analyze app logs for the experiment"
 

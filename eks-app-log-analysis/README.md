@@ -100,7 +100,7 @@ The generated report includes:
 
 ```
 # Real-time monitoring (during experiment)
-"Analyze app logs for ./az-power-interruption-2026-03-31/"
+"Analyze app logs for ./2026-03-31-az-power-interruption/"
 "Monitor application behavior during the experiment"
 "实时监控应用日志"
 

@@ -159,7 +159,7 @@ aws cloudformation delete-stack --stack-name "fis-{SCENARIO}-{TIMESTAMP}" --regi
 ## 使用示例
 
 ```
-"Execute the FIS experiment in ./az-power-interruption-2025-03-27-10-30-00/"
+"Execute the FIS experiment in ./2025-03-27-10-30-00-az-power-interruption/"
 "Run the chaos experiment I just prepared"
 "启动 FIS 实验"
 "部署并运行目录中的实验"
