@@ -22,10 +22,22 @@ npx skills add panlm/skills --list
 | Skill | Description |
 |-------|-------------|
 | [aws-best-practice-research](./aws-best-practice-research/) | Research and compile comprehensive best-practice checklists for any AWS service. Produces categorized HA/DR/security checklist tables with source annotations. Optionally audits live AWS resources against the compiled checklist. |
+| [eks-workload-best-practice-assessment](./eks-workload-best-practice-assessment/) | Assess Kubernetes workloads running on Amazon EKS for best practice compliance, including pod configuration, security posture, observability, networking, storage, image security, and CI/CD practices. |
 | [aws-service-chaos-research](./aws-service-chaos-research/) | Research chaos engineering, fault injection, and resilience testing scenarios for a specific AWS service (RDS, EKS, MSK, ElastiCache, etc.). Identifies available FIS actions and HA verification approaches. |
 | [aws-fis-experiment-prepare](./aws-fis-experiment-prepare/) | Generate all configuration files needed to run an AWS FIS experiment (experiment template, IAM policy, CFN template, alarms, dashboard, expected-behavior doc), then deploy via CloudFormation with self-healing iteration. Supports both Scenario Library pre-built scenarios and custom single FIS actions. **Note:** Scenario Library templates (AZ Power Interruption, AZ Application Slowdown, Cross-AZ Traffic Slowdown, Cross-Region Connectivity) cannot be generated via API — the skill reads AWS documentation to extract the JSON templates. |
 | [aws-fis-experiment-execute](./aws-fis-experiment-execute/) | Deploy and run a prepared AWS FIS experiment. Expects a prepared experiment directory (from aws-fis-experiment-prepare) and handles deployment, experiment start, real-time monitoring, and cleanup. |
-| [eks-workload-best-practice-assessment](./eks-workload-best-practice-assessment/) | Assess Kubernetes workloads running on Amazon EKS for best practice compliance, including pod configuration, security posture, observability, networking, storage, image security, and CI/CD practices. |
+| [eks-app-log-analysis](./eks-app-log-analysis/) | Analyze EKS application logs during or after FIS fault injection experiments. Supports real-time monitoring (background log collection + live insights) and post-hoc analysis. Generates comprehensive reports with error timelines, patterns, and recovery analysis grouped by affected services. |
+
+## Other Skills
+
+Experimental or supplementary skills in the `others/` directory:
+
+| Skill | Description |
+|-------|-------------|
+| [awesome-skills-deepdive](./others/awesome-skills-deepdive/) | Deep dive research tool for exploring and analyzing skills from the awesome-skills registry. |
+| [gartner-hype-cycle](./others/gartner-hype-cycle/) | Analyze technologies using the Gartner Hype Cycle framework. |
+| [scp-paradigm](./others/scp-paradigm/) | Apply the Structure-Conduct-Performance paradigm for industry analysis. |
+| [value-chain-analysis](./others/value-chain-analysis/) | Perform Porter's Value Chain Analysis for business strategy. |
 
 ## Prerequisites
 
