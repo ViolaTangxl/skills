@@ -146,8 +146,9 @@ SERVICE_APP_MAP:
 For each application, start a background `kubectl logs -f` process:
 
 ```bash
-# Create output directory structure
-LOG_DIR="${EXPERIMENT_DIR}/app-logs"
+# Create output directory structure with timestamp for multiple runs
+LOG_TIMESTAMP=$(date +%Y-%m-%d-%H-%M-%S)
+LOG_DIR="${EXPERIMENT_DIR}/${LOG_TIMESTAMP}-app-logs"
 mkdir -p "${LOG_DIR}/rds-cluster-xxx"
 mkdir -p "${LOG_DIR}/elasticache-redis-xxx"
 
@@ -356,7 +357,7 @@ trap cleanup_log_collectors EXIT
 
 ```
 {experiment-dir}/
-├── app-logs/
+├── {timestamp}-app-logs/                    # Timestamped for multiple runs
 │   ├── rds-cluster-xxx/
 │   │   ├── app-backend.log
 │   │   └── api-server.log

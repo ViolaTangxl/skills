@@ -87,7 +87,7 @@ The generated report includes:
 
 ```
 {experiment-dir}/
-├── app-logs/
+├── {timestamp}-app-logs/          # Timestamped for multiple runs
 │   ├── {service-1}/
 │   │   ├── {app-1}.log
 │   │   └── {app-2}.log
