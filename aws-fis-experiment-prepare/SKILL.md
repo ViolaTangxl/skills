@@ -38,6 +38,12 @@ Required tools:
 - **aws___search_documentation** / **aws___read_documentation** — FIS docs research
 - **jq** — JSON processing (optional but recommended)
 
+**EKS Pod fault injection prerequisites:**
+- EKS cluster authentication mode must be **`API_AND_CONFIG_MAP`** or **`API`**
+  - Check with: `aws eks describe-cluster --name {CLUSTER} --query 'cluster.accessConfig.authenticationMode'`
+  - If mode is `CONFIG_MAP` only, the user must update the cluster to `API_AND_CONFIG_MAP` first
+- The CFN template will use `AWS::EKS::AccessEntry` to grant FIS the required Kubernetes RBAC permissions
+
 ## Workflow
 
 ### Step 1: Identify Scenario and Region

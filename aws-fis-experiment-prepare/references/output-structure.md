@@ -200,7 +200,15 @@ Generate the minimum permissions for the specific FIS actions in the experiment.
 | `aws:elasticache:replicationgroup-interrupt-az-power` | `elasticache:InterruptClusterAzPower`, `elasticache:DescribeReplicationGroups` |
 | `aws:ebs:pause-io` | `ec2:PauseVolumeIO`, `ec2:DescribeVolumes` |
 | `aws:ssm:send-command` | `ssm:SendCommand`, `ssm:GetCommandInvocation`, `ssm:ListCommands` |
+| `aws:eks:pod-delete` | `eks:DescribeCluster`, `ec2:DescribeSubnets`, `tag:GetResources` |
 | `aws:eks:pod-network-latency` | `eks:DescribeCluster`, `ec2:DescribeSubnets`, `tag:GetResources` |
+| `aws:eks:pod-cpu-stress` | `eks:DescribeCluster`, `ec2:DescribeSubnets`, `tag:GetResources` |
+| `aws:eks:pod-memory-stress` | `eks:DescribeCluster`, `ec2:DescribeSubnets`, `tag:GetResources` |
+| `aws:eks:pod-io-stress` | `eks:DescribeCluster`, `ec2:DescribeSubnets`, `tag:GetResources` |
+
+**Note:** EKS Pod fault injection actions also require Kubernetes RBAC permissions.
+Use `AWS::EKS::AccessEntry` in the CFN template (see cfn-template.yaml section) to grant
+FIS the required access. The EKS cluster must have authentication mode `API_AND_CONFIG_MAP` or `API`.
 
 ---
 
@@ -347,6 +355,33 @@ Resources:
   #     Threshold: '{THRESHOLD}'
   #     ComparisonOperator: '{COMPARISON}'
   #     TreatMissingData: breaching
+
+  # --- (EKS Pod Fault Injection) EKS Access Entry ---
+  # Include the EKSAccessEntry resource below ONLY for EKS Pod-related FIS actions
+  # (e.g., aws:eks:pod-delete, aws:eks:pod-network-latency, aws:eks:pod-cpu-stress).
+  # This grants FIS the required Kubernetes RBAC permissions to manage pods.
+  #
+  # PREREQUISITE: The EKS cluster must have authentication mode set to
+  # 'API_AND_CONFIG_MAP' or 'API'. Check with:
+  #   aws eks describe-cluster --name {CLUSTER} --query 'cluster.accessConfig.authenticationMode'
+  # If mode is 'CONFIG_MAP' only, the user must update the cluster first.
+  #
+  # EKSAccessEntry:
+  #   Type: AWS::EKS::AccessEntry
+  #   DependsOn: FISExperimentRole
+  #   Properties:
+  #     ClusterName: '{EKS_CLUSTER_NAME}'
+  #     PrincipalArn: !GetAtt FISExperimentRole.Arn
+  #     Type: STANDARD
+  #     AccessPolicies:
+  #       - PolicyArn: arn:aws:eks::aws:cluster-access-policy/AmazonEKSEditPolicy
+  #         AccessScope:
+  #           Type: namespace
+  #           Namespaces:
+  #             - '{TARGET_NAMESPACE}'
+  #
+  # Note: For broader access across multiple namespaces, use Type: cluster instead
+  # of Type: namespace, or list multiple namespaces in the Namespaces array.
 
 Outputs:
   ExperimentTemplateId:
