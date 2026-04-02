@@ -48,6 +48,37 @@ A brief summary (file paths, overall score, PASS/FAIL/WARN counts) is printed to
 - **AWS CLI** — configured with access to the target EKS cluster and ECR
 - **kubectl** — configured to access the target EKS cluster
 
+### Enable EKS API Authentication Mode
+
+Some assessment checks and FIS Pod fault injection actions require the EKS cluster to support API-based authentication. Set the authentication mode to `API_AND_CONFIG_MAP` so that both `aws-auth` ConfigMap and EKS Access Entry work:
+
+```bash
+aws eks update-cluster-config \
+  --name <cluster-name> \
+  --access-config authenticationMode=API_AND_CONFIG_MAP
+```
+
+> **Why both?** `API_AND_CONFIG_MAP` maintains backward compatibility with existing `aws-auth` ConfigMap mappings while enabling the newer Access Entry API used by FIS and CloudFormation (`AWS::EKS::AccessEntry`).
+
+### Grant EC2 Instance Role Access to EKS
+
+If you run these skills from an EC2 instance (e.g., Cloud9, bastion host), the instance's IAM role needs permission to interact with the EKS cluster. Create an EKS Access Entry for the EC2 role:
+
+```bash
+aws eks create-access-entry \
+  --cluster-name <cluster-name> \
+  --principal-arn arn:aws:iam::<account-id>:role/<ec2-role-name> \
+  --type STANDARD
+
+aws eks associate-access-policy \
+  --cluster-name <cluster-name> \
+  --principal-arn arn:aws:iam::<account-id>:role/<ec2-role-name> \
+  --policy-arn arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy \
+  --access-scope type=cluster
+```
+
+> Adjust the access policy and scope as needed. `AmazonEKSClusterAdminPolicy` with cluster scope is shown for simplicity — in production, use a more restrictive policy (e.g., `AmazonEKSEditPolicy` scoped to specific namespaces).
+
 ## Usage
 
 Trigger this skill with phrases like:

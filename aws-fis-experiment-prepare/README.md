@@ -95,11 +95,28 @@ After generating files, the skill immediately deploys the CloudFormation templat
 
 ## Prerequisites
 
-| Dependency | Required For | Notes |
-|---|---|---|
-| AWS CLI (`aws`) | Resource discovery, FIS action validation, CFN deployment | Must have permissions for FIS, IAM, CloudWatch, CloudFormation |
-| [aws-knowledge-mcp-server](https://github.com/awslabs/mcp/tree/main/src/aws-knowledge-mcp-server) | Scenario Library documentation research | `aws___search_documentation`, `aws___read_documentation` |
-| jq | JSON processing | Optional but recommended |
+- **AWS CLI** (`aws`) — Resource discovery, FIS action validation, CFN deployment. Must have permissions for FIS, IAM, CloudWatch, CloudFormation.
+- [**aws-knowledge-mcp-server**](https://github.com/awslabs/mcp/tree/main/src/aws-knowledge-mcp-server) — Scenario Library documentation research (`aws___search_documentation`, `aws___read_documentation`)
+- **jq** — JSON processing (optional but recommended)
+
+### Create a CloudFormation Service Role
+
+This skill deploys CloudFormation stacks that create IAM roles, CloudWatch resources, and FIS experiment templates. Instead of using your own broad permissions, create a dedicated CloudFormation service role to limit the blast radius.
+
+See the setup guide: https://panlm.github.io/others/cfn-service-role-for-fis-experiment-setup-guide/
+
+Then pass `--role-arn` when deploying stacks:
+
+```bash
+aws cloudformation deploy \
+  --template-file cfn-template.yaml \
+  --stack-name <stack-name> \
+  --role-arn arn:aws:iam::<account-id>:role/CloudFormationFISServiceRole \
+  --capabilities CAPABILITY_NAMED_IAM \
+  --region <region>
+```
+
+> **Benefit:** Your calling identity only needs `cloudformation:*` and `iam:PassRole` permissions. All resource creation is delegated to the service role, limiting the blast radius.
 
 ## Workflow Overview
 

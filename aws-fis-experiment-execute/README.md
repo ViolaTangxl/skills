@@ -129,11 +129,8 @@ The experiment directory must contain:
 
 ## Prerequisites
 
-| Dependency | Required For | Notes |
-|---|---|---|
-| AWS CLI (`aws`) | FIS, CloudWatch, CloudFormation operations | Must have permissions for all services |
-| Prepared experiment directory | Configuration source | From aws-fis-experiment-prepare or manually created |
-| **Deployed CloudFormation stack** | Experiment execution | Stack must be in `CREATE_COMPLETE` status |
+- **AWS CLI** (`aws`) — FIS, CloudWatch, CloudFormation operations. Must have permissions for all services.
+- **Prepared experiment directory** — Configuration source, from aws-fis-experiment-prepare or manually created.
 
 ## Key CLI Commands
 

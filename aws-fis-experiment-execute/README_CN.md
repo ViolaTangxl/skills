@@ -128,11 +128,8 @@ YYYY-mm-dd-HH-MM-SS-{scenario}-experiment-results.md
 
 ## 前置条件
 
-| 依赖 | 用于 | 说明 |
-|---|---|---|
-| AWS CLI (`aws`) | FIS、CloudWatch、CloudFormation 操作 | 需要相关服务的权限 |
-| 已准备好的实验目录 | 配置来源 | 来自 aws-fis-experiment-prepare 或手动创建 |
-| **已部署的 CloudFormation Stack** | 实验执行 | Stack 必须处于 `CREATE_COMPLETE` 状态 |
+- **AWS CLI** (`aws`) — FIS、CloudWatch、CloudFormation 操作。需要相关服务的权限。
+- **已准备好的实验目录** — 配置来源，来自 aws-fis-experiment-prepare 或手动创建。
 
 ## 关键 CLI 命令
 

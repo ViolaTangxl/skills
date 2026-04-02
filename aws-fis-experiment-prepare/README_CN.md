@@ -95,11 +95,28 @@
 
 ## 前置条件
 
-| 依赖 | 用于 | 说明 |
-|---|---|---|
-| AWS CLI (`aws`) | 资源发现、FIS Action 验证、CFN 部署 | 需要 FIS、IAM、CloudWatch、CloudFormation 权限 |
-| [aws-knowledge-mcp-server](https://github.com/awslabs/mcp/tree/main/src/aws-knowledge-mcp-server) | Scenario Library 文档研究 | `aws___search_documentation`、`aws___read_documentation` |
-| jq | JSON 处理 | 可选但推荐 |
+- **AWS CLI** (`aws`) — 资源发现、FIS Action 验证、CFN 部署。需要 FIS、IAM、CloudWatch、CloudFormation 权限。
+- [**aws-knowledge-mcp-server**](https://github.com/awslabs/mcp/tree/main/src/aws-knowledge-mcp-server) — Scenario Library 文档研究（`aws___search_documentation`、`aws___read_documentation`）
+- **jq** — JSON 处理（可选但推荐）
+
+### 创建 CloudFormation 服务角色
+
+本 Skill 通过 CloudFormation 部署 Stack，其中包含 IAM 角色、CloudWatch 资源和 FIS 实验模板。建议创建专用的 CloudFormation 服务角色，而不是使用自身的宽泛权限。
+
+参见配置指南：https://panlm.github.io/others/cfn-service-role-for-fis-experiment-setup-guide/
+
+部署 Stack 时传入 `--role-arn`：
+
+```bash
+aws cloudformation deploy \
+  --template-file cfn-template.yaml \
+  --stack-name <stack-name> \
+  --role-arn arn:aws:iam::<account-id>:role/CloudFormationFISServiceRole \
+  --capabilities CAPABILITY_NAMED_IAM \
+  --region <region>
+```
+
+> **好处：** 调用者只需 `cloudformation:*` 和 `iam:PassRole` 权限，所有资源创建都委托给服务角色，缩小影响范围。
 
 ## 工作流程概览
 
