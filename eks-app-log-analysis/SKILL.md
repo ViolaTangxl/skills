@@ -149,7 +149,8 @@ SERVICE_APP_MAP:
 For each application, start a background `kubectl logs -f` process:
 
 ```bash
-export LOG_DIR="${EXPERIMENT_DIR}/$(date +%Y-%m-%d-%H-%M-%S)-app-logs"
+# Save logs to a temp directory (not the experiment dir or current dir)
+export LOG_DIR="/tmp/$(date +%Y-%m-%d-%H-%M-%S)-fis-app-logs"
 mkdir -p "${LOG_DIR}/rds-cluster-xxx"
 mkdir -p "${LOG_DIR}/elasticache-redis-xxx"
 
@@ -169,7 +170,8 @@ done
 #### Post-hoc Mode: Batch Fetch
 
 ```bash
-export LOG_DIR="${EXPERIMENT_DIR}/$(date +%Y-%m-%d-%H-%M-%S)-app-logs"
+# Save logs to a temp directory (not the experiment dir or current dir)
+export LOG_DIR="/tmp/$(date +%Y-%m-%d-%H-%M-%S)-fis-app-logs"
 
 kubectl logs deployment/${DEPLOYMENT} -n ${NAMESPACE} \
     --timestamps --all-containers=true \
@@ -252,7 +254,9 @@ After experiment completes (or immediately in post-hoc mode), generate the repor
 
 ```bash
 TIMESTAMP=$(date +%Y-%m-%d-%H-%M-%S)
-REPORT_FILE="${EXPERIMENT_DIR}/${TIMESTAMP}-app-log-analysis.md"
+# Save the report in the current working directory (where the user invoked the skill),
+# NOT in the experiment directory
+REPORT_FILE="./${TIMESTAMP}-app-log-analysis.md"
 ```
 
 Report structure:
@@ -320,9 +324,14 @@ Report structure:
 
 ## Appendix: Log File Locations
 
+**Raw log directory:** `{LOG_DIR}`
+
+To view raw logs after the analysis, navigate to the temp directory shown above.
+These files will persist until the system clears `/tmp`.
+
 | Application | Log File |
 |-------------|----------|
-| {app} | `{path}` |
+| {app} | `{LOG_DIR}/{service}/{app}.log` |
 ```
 
 ### Step 8: Cleanup (Real-time Mode)
@@ -357,15 +366,16 @@ trap cleanup_log_collectors EXIT
 ## Output Files
 
 ```
-{experiment-dir}/
-├── {timestamp}-app-logs/                    # Timestamped for multiple runs
-│   ├── rds-cluster-xxx/
-│   │   ├── app-backend.log
-│   │   └── api-server.log
-│   ├── elasticache-redis-xxx/
-│   │   └── cache-layer.log
-│   └── .pids (temporary, cleaned up)
-└── {timestamp}-app-log-analysis.md
+./                                            # Current working directory
+└── {timestamp}-app-log-analysis.md           # Analysis report
+
+/tmp/{timestamp}-fis-app-logs/                # Temp directory for raw logs
+├── rds-cluster-xxx/
+│   ├── app-backend.log
+│   └── api-server.log
+├── elasticache-redis-xxx/
+│   └── cache-layer.log
+└── .pids (temporary, cleaned up)
 ```
 
 ## Usage Examples
