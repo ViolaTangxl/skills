@@ -1,137 +1,88 @@
 # CLI Commands Reference
 
-Complete AWS CLI command reference for FIS experiment deployment and execution.
+AWS CLI command reference for FIS experiment stack verification and execution.
 All commands use `{PLACEHOLDERS}` for values that must be replaced.
 
-## IAM Role Commands
-
-### Create FIS Execution Role
-
-```bash
-aws iam create-role \
-  --role-name "FISExperimentRole-{SCENARIO_NAME}" \
-  --assume-role-policy-document '{
-    "Version": "2012-10-17",
-    "Statement": [
-      {
-        "Effect": "Allow",
-        "Principal": {
-          "Service": "fis.amazonaws.com"
-        },
-        "Action": "sts:AssumeRole"
-      }
-    ]
-  }'
-```
-
-### Attach Policy to Role
-
-```bash
-aws iam put-role-policy \
-  --role-name "FISExperimentRole-{SCENARIO_NAME}" \
-  --policy-name "FISExperimentPolicy" \
-  --policy-document "file://{EXPERIMENT_DIR}/iam-policy.json"
-```
-
-### Get Role ARN (for template update)
-
-```bash
-ROLE_ARN=$(aws iam get-role \
-  --role-name "FISExperimentRole-{SCENARIO_NAME}" \
-  --query 'Role.Arn' --output text)
-```
-
-### Delete Role (cleanup)
-
-```bash
-aws iam delete-role-policy \
-  --role-name "FISExperimentRole-{SCENARIO_NAME}" \
-  --policy-name "FISExperimentPolicy"
-
-aws iam delete-role \
-  --role-name "FISExperimentRole-{SCENARIO_NAME}"
-```
+**Note:** This skill does NOT deploy infrastructure. For deployment commands, see
+the `aws-fis-experiment-prepare` skill.
 
 ---
 
-## CloudWatch Alarm Commands
+## CloudFormation Stack Verification Commands
 
-### Create Stop Condition Alarm
-
-```bash
-aws cloudwatch put-metric-alarm \
-  --alarm-name "FIS-StopCondition-{SCENARIO}-{SERVICE}" \
-  --alarm-description "Stop FIS experiment if {CONDITION}" \
-  --namespace "{NAMESPACE}" \
-  --metric-name "{METRIC_NAME}" \
-  --statistic "Average" \
-  --period 60 \
-  --evaluation-periods 1 \
-  --threshold "{VALUE}" \
-  --comparison-operator "{OPERATOR}" \
-  --treat-missing-data "breaching" \
-  --dimensions "Name={DIM_NAME},Value={DIM_VALUE}" \
-  --region {REGION}
-```
-
-### Get Alarm ARN (for template update)
+### Check Stack Status
 
 ```bash
-ALARM_ARN=$(aws cloudwatch describe-alarms \
-  --alarm-names "FIS-StopCondition-{SCENARIO}-{SERVICE}" \
-  --query 'MetricAlarms[0].AlarmArn' --output text \
-  --region {REGION})
+aws cloudformation describe-stacks \
+  --stack-name "{STACK_NAME}" \
+  --region {REGION} \
+  --query 'Stacks[0].{
+    StackName: StackName,
+    StackStatus: StackStatus,
+    CreationTime: CreationTime,
+    LastUpdatedTime: LastUpdatedTime,
+    StackStatusReason: StackStatusReason
+  }' --output table
 ```
 
-### Delete Alarms (cleanup)
+### Get Stack Outputs
 
 ```bash
-aws cloudwatch delete-alarms \
-  --alarm-names "FIS-StopCondition-{SCENARIO}-{SERVICE}" \
-  --region {REGION}
+aws cloudformation describe-stacks \
+  --stack-name "{STACK_NAME}" \
+  --query 'Stacks[0].Outputs' \
+  --region {REGION} --output table
 ```
 
----
-
-## CloudWatch Dashboard Commands
-
-### Create Dashboard
+### Extract Experiment Template ID from Stack Outputs
 
 ```bash
-aws cloudwatch put-dashboard \
-  --dashboard-name "FIS-{SCENARIO}" \
-  --dashboard-body "file://{EXPERIMENT_DIR}/alarms/dashboard.json" \
-  --region {REGION}
+TEMPLATE_ID=$(aws cloudformation describe-stacks \
+  --stack-name "{STACK_NAME}" \
+  --query 'Stacks[0].Outputs[?OutputKey==`ExperimentTemplateId`].OutputValue' \
+  --output text --region {REGION})
+
+echo "Experiment Template ID: ${TEMPLATE_ID}"
 ```
 
-### Get Dashboard URL
-
-```
-https://{REGION}.console.aws.amazon.com/cloudwatch/home?region={REGION}#dashboards:name=FIS-{SCENARIO}
-```
-
-### Delete Dashboard (cleanup)
+### Get Stack Events (for debugging failed stacks)
 
 ```bash
-aws cloudwatch delete-dashboards \
-  --dashboard-names "FIS-{SCENARIO}" \
-  --region {REGION}
+aws cloudformation describe-stack-events \
+  --stack-name "{STACK_NAME}" \
+  --region {REGION} \
+  --query 'StackEvents[?ResourceStatus==`CREATE_FAILED`].{
+    Resource: LogicalResourceId,
+    Status: ResourceStatus,
+    Reason: ResourceStatusReason,
+    Time: Timestamp
+  }' --output table
+```
+
+### List All Stack Resources
+
+```bash
+aws cloudformation list-stack-resources \
+  --stack-name "{STACK_NAME}" \
+  --region {REGION} \
+  --query 'StackResourceSummaries[].{
+    Resource: LogicalResourceId,
+    Type: ResourceType,
+    Status: ResourceStatus,
+    PhysicalId: PhysicalResourceId
+  }' --output table
 ```
 
 ---
 
 ## FIS Experiment Template Commands
 
-### Create Experiment Template
+### Get Experiment Template Details
 
 ```bash
-TEMPLATE_RESPONSE=$(aws fis create-experiment-template \
-  --cli-input-json "file://{EXPERIMENT_DIR}/experiment-template.json" \
-  --region {REGION} \
-  --output json)
-
-TEMPLATE_ID=$(echo "$TEMPLATE_RESPONSE" | jq -r '.experimentTemplate.id')
-echo "Experiment Template ID: $TEMPLATE_ID"
+aws fis get-experiment-template \
+  --id "{TEMPLATE_ID}" \
+  --region {REGION}
 ```
 
 ### List Experiment Templates
@@ -142,20 +93,18 @@ aws fis list-experiment-templates \
   --region {REGION} --output table
 ```
 
-### Get Experiment Template Details
+### Verify Template Exists
 
 ```bash
 aws fis get-experiment-template \
   --id "{TEMPLATE_ID}" \
-  --region {REGION}
-```
-
-### Delete Experiment Template (cleanup)
-
-```bash
-aws fis delete-experiment-template \
-  --id "{TEMPLATE_ID}" \
-  --region {REGION}
+  --region {REGION} \
+  --query '{
+    Id: experimentTemplate.id,
+    Description: experimentTemplate.description,
+    StopConditions: experimentTemplate.stopConditions,
+    Actions: experimentTemplate.actions
+  }' --output json
 ```
 
 ---
@@ -197,7 +146,7 @@ aws fis get-experiment \
   --query 'experiment.actions' --output json
 ```
 
-### Stop Experiment (emergency)
+### Stop Experiment (Emergency)
 
 ```bash
 aws fis stop-experiment \
@@ -213,64 +162,112 @@ aws fis list-experiments \
   --region {REGION} --output table
 ```
 
----
-
-## CloudFormation Commands
-
-### Deploy Stack (all-in-one)
+### List All Experiments for Template
 
 ```bash
-aws cloudformation deploy \
-  --template-file "{EXPERIMENT_DIR}/cfn-template.yaml" \
-  --stack-name "fis-{SCENARIO}-{TIMESTAMP}" \
-  --capabilities CAPABILITY_NAMED_IAM \
-  --region {REGION} \
-  --no-fail-on-empty-changeset
-```
-
-### Wait for Stack Creation
-
-```bash
-aws cloudformation wait stack-create-complete \
-  --stack-name "fis-{SCENARIO}-{TIMESTAMP}" \
-  --region {REGION}
-```
-
-### Get Stack Outputs
-
-```bash
-aws cloudformation describe-stacks \
-  --stack-name "fis-{SCENARIO}-{TIMESTAMP}" \
-  --query 'Stacks[0].Outputs' \
+aws fis list-experiments \
+  --query "experiments[?experimentTemplateId==\`{TEMPLATE_ID}\`].{
+    id:id,
+    status:state.status,
+    startTime:startTime,
+    endTime:endTime
+  }" \
   --region {REGION} --output table
 ```
 
-### Get Experiment Template ID from Stack
+---
+
+## Monitoring Commands (During Experiment)
+
+### Poll Experiment Status (loop)
 
 ```bash
-TEMPLATE_ID=$(aws cloudformation describe-stacks \
-  --stack-name "fis-{SCENARIO}-{TIMESTAMP}" \
-  --query 'Stacks[0].Outputs[?OutputKey==`ExperimentTemplateId`].OutputValue' \
-  --output text --region {REGION})
+EXPERIMENT_ID="{EXPERIMENT_ID}"
+REGION="{REGION}"
+
+while true; do
+  STATUS=$(aws fis get-experiment \
+    --id "${EXPERIMENT_ID}" \
+    --region ${REGION} \
+    --query 'experiment.state.status' --output text)
+  echo "$(date '+%Y-%m-%d %H:%M:%S'): Status = $STATUS"
+  case "$STATUS" in
+    completed|stopped|failed) break ;;
+    *) sleep 30 ;;
+  esac
+done
 ```
 
-### Delete Stack (cleanup)
+### Check Alarm State
+
+```bash
+aws cloudwatch describe-alarms \
+  --alarm-names "FIS-StopCondition-{SCENARIO}-{SERVICE}" \
+  --query 'MetricAlarms[].{Name:AlarmName, State:StateValue, Reason:StateReason}' \
+  --region {REGION} --output table
+```
+
+### Get Recent Metric Data
+
+```bash
+aws cloudwatch get-metric-statistics \
+  --namespace "{NAMESPACE}" \
+  --metric-name "{METRIC}" \
+  --dimensions "Name={DIM_NAME},Value={DIM_VALUE}" \
+  --start-time "$(date -u -v-30M +%Y-%m-%dT%H:%M:%S)" \
+  --end-time "$(date -u +%Y-%m-%dT%H:%M:%S)" \
+  --period 60 \
+  --statistics Average \
+  --region {REGION} --output table
+```
+
+### Get Dashboard URL
+
+```
+https://{REGION}.console.aws.amazon.com/cloudwatch/home?region={REGION}#dashboards:name=FIS-{SCENARIO}
+```
+
+---
+
+## Cleanup Commands
+
+### Delete Stack (Recommended)
+
+Deleting the stack removes all resources created by it (IAM role, alarms, dashboard, FIS template).
 
 ```bash
 aws cloudformation delete-stack \
-  --stack-name "fis-{SCENARIO}-{TIMESTAMP}" \
+  --stack-name "{STACK_NAME}" \
   --region {REGION}
 
 aws cloudformation wait stack-delete-complete \
-  --stack-name "fis-{SCENARIO}-{TIMESTAMP}" \
+  --stack-name "{STACK_NAME}" \
   --region {REGION}
 ```
 
-### Validate Template (pre-check)
+### Delete Experiment Template Only
+
+If you need to delete just the FIS template (without the full stack):
 
 ```bash
-aws cloudformation validate-template \
-  --template-body "file://{EXPERIMENT_DIR}/cfn-template.yaml" \
+aws fis delete-experiment-template \
+  --id "{TEMPLATE_ID}" \
+  --region {REGION}
+```
+
+### Delete CloudWatch Alarms Only
+
+```bash
+aws cloudwatch delete-alarms \
+  --alarm-names "FIS-StopCondition-{SCENARIO}-{SERVICE}" \
+  --region {REGION}
+```
+
+### Delete CloudWatch Dashboard Only
+
+```bash
+aws cloudwatch delete-dashboards \
+  --dashboard-names "FIS-{SCENARIO}" \
   --region {REGION}
 ```
 
@@ -306,43 +303,28 @@ aws fis get-action \
 
 ---
 
-## Monitoring Commands (During Experiment)
+## Status Reference
 
-### Poll Experiment Status (loop)
+### Stack Status Values
 
-```bash
-while true; do
-  STATUS=$(aws fis get-experiment \
-    --id "{EXPERIMENT_ID}" \
-    --region {REGION} \
-    --query 'experiment.state.status' --output text)
-  echo "$(date): Status = $STATUS"
-  case "$STATUS" in
-    completed|stopped|failed) break ;;
-    *) sleep 30 ;;
-  esac
-done
-```
+| Status | Meaning | Action |
+|---|---|---|
+| `CREATE_COMPLETE` | Stack created successfully | Ready for experiment |
+| `UPDATE_COMPLETE` | Stack updated successfully | Ready for experiment |
+| `CREATE_IN_PROGRESS` | Stack being created | Wait and re-check |
+| `UPDATE_IN_PROGRESS` | Stack being updated | Wait and re-check |
+| `CREATE_FAILED` | Stack creation failed | Check events, fix, redeploy |
+| `ROLLBACK_COMPLETE` | Creation failed, rolled back | Check events, fix, redeploy |
+| `DELETE_COMPLETE` | Stack deleted | Stack no longer exists |
+| `DELETE_IN_PROGRESS` | Stack being deleted | Wait for deletion |
 
-### Check Alarm State
+### Experiment Status Values
 
-```bash
-aws cloudwatch describe-alarms \
-  --alarm-names "FIS-StopCondition-{SCENARIO}-{SERVICE}" \
-  --query 'MetricAlarms[].{Name:AlarmName, State:StateValue, Reason:StateReason}' \
-  --region {REGION} --output table
-```
-
-### Get Recent Metric Data
-
-```bash
-aws cloudwatch get-metric-statistics \
-  --namespace "{NAMESPACE}" \
-  --metric-name "{METRIC}" \
-  --dimensions "Name={DIM_NAME},Value={DIM_VALUE}" \
-  --start-time "$(date -u -v-30M +%Y-%m-%dT%H:%M:%S)" \
-  --end-time "$(date -u +%Y-%m-%dT%H:%M:%S)" \
-  --period 60 \
-  --statistics Average \
-  --region {REGION} --output table
-```
+| Status | Meaning |
+|---|---|
+| `initiating` | Experiment is starting |
+| `running` | Experiment is in progress |
+| `completed` | Experiment finished successfully |
+| `stopping` | Being stopped (by user or stop condition) |
+| `stopped` | Stopped before completion |
+| `failed` | Experiment failed |
