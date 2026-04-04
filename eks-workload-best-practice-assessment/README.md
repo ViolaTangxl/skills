@@ -47,6 +47,7 @@ A brief summary (file paths, overall score, PASS/FAIL/WARN counts) is printed to
 - **context7 MCP** — for K8s official documentation
 - **AWS CLI** — configured with access to the target EKS cluster and ECR
 - **kubectl** — configured to access the target EKS cluster
+- **jq** — for parsing JSON output from AWS CLI and kubectl commands
 
 ### Enable EKS API Authentication Mode
 

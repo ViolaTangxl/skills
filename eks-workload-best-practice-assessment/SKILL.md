@@ -29,6 +29,7 @@ This skill requires:
   - `context7_query-docs` — query K8s documentation
 - **AWS CLI** (`aws`) — configured with read access to the target EKS cluster and ECR
 - **kubectl** — configured to access the target EKS cluster
+- **jq** — for parsing JSON output from AWS CLI and kubectl commands
 
 ## Scope Boundary
 
