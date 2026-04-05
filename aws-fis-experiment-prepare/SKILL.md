@@ -43,6 +43,7 @@ Required tools:
   - Check with: `aws eks describe-cluster --name {CLUSTER} --query 'cluster.accessConfig.authenticationMode'`
   - If mode is `CONFIG_MAP` only, the user must update the cluster to `API_AND_CONFIG_MAP` first
 - The CFN template will use `AWS::EKS::AccessEntry` to grant FIS the required Kubernetes RBAC permissions
+- **MANDATORY:** When using any `aws:eks:pod-*` action, you MUST follow `references/eks-pod-action-prerequisites.md`
 
 ## Workflow
 
@@ -137,6 +138,37 @@ Extract from the action:
 - Required `targets` (resource types, e.g., `aws:rds:cluster`, `aws:ec2:instance`)
 - Required `parameters` (duration, percentage, etc.)
 - Ask the user for target resource details
+
+### Step 2.5: EKS Pod Action Prerequisites (Mandatory Gate)
+
+**If the experiment includes ANY `aws:eks:pod-*` action, you MUST complete this step
+BEFORE proceeding to Step 3.**
+
+**Applicable actions:**
+- `aws:eks:pod-cpu-stress`
+- `aws:eks:pod-delete`
+- `aws:eks:pod-io-stress`
+- `aws:eks:pod-memory-stress`
+- `aws:eks:pod-network-blackhole-port`
+- `aws:eks:pod-network-latency`
+- `aws:eks:pod-network-packet-loss`
+
+**Required actions:**
+1. Read the official documentation: call `aws___read_documentation` with
+   `https://docs.aws.amazon.com/fis/latest/userguide/eks-pod-actions.html`
+2. Follow ALL prerequisites in `references/eks-pod-action-prerequisites.md`:
+   - Verify/create Kubernetes ServiceAccount + RBAC (Role, RoleBinding)
+   - Configure EKS Access Entry with `Username: fis-experiment`
+   - Verify cluster authentication mode is `API_AND_CONFIG_MAP` or `API`
+   - Check target Pod's `readOnlyRootFilesystem` is `false`
+   - For network actions: verify NOT using Fargate or bridge network mode
+
+**Output:** Provide the user with the K8S RBAC YAML manifest to apply before running
+the experiment. Include this in the generated README.md.
+
+**Do NOT skip this step.** EKS pod actions have complex prerequisites that differ
+significantly from other FIS actions. Proceeding without these prerequisites will
+cause the experiment to fail at runtime.
 
 ### Step 3: Validate Resource-Action Compatibility
 
