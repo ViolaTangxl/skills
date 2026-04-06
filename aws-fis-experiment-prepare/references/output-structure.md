@@ -167,7 +167,9 @@ See `references/scenario-templates.md` for scenario-specific templates.
 
 ## iam-policy.json
 
-Generate the minimum permissions for the specific FIS actions in the experiment.
+This file documents the IAM permissions for the FIS execution role. The CFN template
+uses AWS managed policies as the base (see `ManagedPolicyArns` in cfn-template.yaml).
+This file captures any **additional inline permissions** not covered by managed policies.
 
 ```json
 {
@@ -249,16 +251,20 @@ Resources:
             Principal:
               Service: fis.amazonaws.com
             Action: sts:AssumeRole
+      ManagedPolicyArns:
+        # Attach AWS managed FIS policies based on actions used in the experiment
+        # - arn:aws:iam::aws:policy/service-role/AWSFaultInjectionSimulatorEC2Access
+        # - arn:aws:iam::aws:policy/service-role/AWSFaultInjectionSimulatorRDSAccess
+        # - arn:aws:iam::aws:policy/service-role/AWSFaultInjectionSimulatorNetworkAccess
+        # - arn:aws:iam::aws:policy/service-role/AWSFaultInjectionSimulatorECSAccess
+        # - arn:aws:iam::aws:policy/service-role/AWSFaultInjectionSimulatorEKSAccess
+        # - arn:aws:iam::aws:policy/service-role/AWSFaultInjectionSimulatorSSMAccess
       Policies:
-        - PolicyName: FISExperimentPolicy
+        # Only add inline policy for permissions NOT covered by managed policies
+        - PolicyName: FISExtraPermissions
           PolicyDocument:
             Version: '2012-10-17'
             Statement:
-              - Sid: FISActions
-                Effect: Allow
-                Action:
-                  # {list specific permissions}
-                Resource: '*'
               - Sid: FISLogging
                 Effect: Allow
                 Action:
@@ -266,6 +272,13 @@ Resources:
                   - logs:PutLogEvents
                   - logs:CreateLogStream
                 Resource: '*'
+              # Add service-specific permissions not in any managed policy:
+              # - Sid: ElastiCacheActions
+              #   Effect: Allow
+              #   Action:
+              #     - elasticache:InterruptClusterAzPower
+              #     - elasticache:DescribeReplicationGroups
+              #   Resource: '*'
 
   # --- CloudWatch Dashboard ---
   ExperimentDashboard:

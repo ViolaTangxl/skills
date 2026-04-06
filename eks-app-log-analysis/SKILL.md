@@ -36,7 +36,7 @@ digraph log_analysis_flow {
     "Real-time mode" [shape=box];
     "Post-hoc mode" [shape=box];
     "Read service list" [shape=box];
-    "Ask user for app dependencies" [shape=box];
+    "Auto-discover + confirm app dependencies" [shape=box];
     "Start background log collection" [shape=box];
     "Batch fetch historical logs" [shape=box];
     "Frontend polling + insight display" [shape=box];
@@ -48,9 +48,9 @@ digraph log_analysis_flow {
     "Detect mode" -> "Post-hoc mode" [label="*-experiment-results.md"];
     "Real-time mode" -> "Read service list";
     "Post-hoc mode" -> "Read service list";
-    "Read service list" -> "Ask user for app dependencies";
-    "Ask user for app dependencies" -> "Start background log collection" [label="real-time"];
-    "Ask user for app dependencies" -> "Batch fetch historical logs" [label="post-hoc"];
+    "Read service list" -> "Auto-discover + confirm app dependencies";
+    "Auto-discover + confirm app dependencies" -> "Start background log collection" [label="real-time"];
+    "Auto-discover + confirm app dependencies" -> "Batch fetch historical logs" [label="post-hoc"];
     "Start background log collection" -> "Frontend polling + insight display";
     "Frontend polling + insight display" -> "Experiment complete?";
     "Experiment complete?" -> "Frontend polling + insight display" [label="No, continue"];
@@ -116,12 +116,63 @@ For each service, please provide the EKS applications that depend on it.
 
 ### Step 3: Collect Application Dependencies
 
-For each service, ask the user to provide dependent applications:
+#### 3a. Auto-Discover Potential Dependencies
+
+Before asking the user, attempt to automatically discover EKS applications that
+may depend on each affected AWS service. For each service, scan the cluster for
+clues:
+
+```bash
+# For RDS/Aurora: search for endpoint hostname in pod env vars and ConfigMaps
+RDS_ENDPOINT=$(aws rds describe-db-clusters --db-cluster-identifier {CLUSTER_ID} \
+  --query 'DBClusters[0].Endpoint' --output text --region ${TARGET_REGION})
+
+# Search all pods for env vars containing the RDS endpoint
+kubectl get pods --all-namespaces -o json | \
+  jq -r --arg ep "${RDS_ENDPOINT}" \
+  '.items[] | select(.spec.containers[].env[]?.value // "" | contains($ep)) |
+   "\(.metadata.namespace)/\(.metadata.ownerReferences[0].name // .metadata.name)"' | sort -u
+
+# Search ConfigMaps for the endpoint
+kubectl get configmaps --all-namespaces -o json | \
+  jq -r --arg ep "${RDS_ENDPOINT}" \
+  '.items[] | select(.data // {} | to_entries[] | .value | contains($ep)) |
+   "\(.metadata.namespace)/\(.metadata.name)"' | sort -u
+```
+
+```bash
+# For ElastiCache: search for primary endpoint
+REDIS_ENDPOINT=$(aws elasticache describe-replication-groups \
+  --replication-group-id {RG_ID} \
+  --query 'ReplicationGroups[0].NodeGroups[0].PrimaryEndpoint.Address' \
+  --output text --region ${TARGET_REGION})
+
+# Same pattern: search pods and ConfigMaps for the endpoint
+```
+
+For other service types, adapt the endpoint discovery accordingly (e.g., EC2
+private IP/DNS, NLB/ALB DNS name).
+
+**Present discovered candidates to the user:**
 
 ```
-Which EKS applications depend on RDS (cluster-xxx)?
-Please provide in format: namespace/deployment or namespace/pod-label-selector
-Example: default/app-backend, production/api-server
+Based on cluster scanning, I found the following apps that may depend on
+RDS (cluster-xxx):
+  - production/api-server (env var DB_HOST matches RDS endpoint)
+  - default/app-backend (ConfigMap db-config references RDS endpoint)
+
+For ElastiCache (redis-xxx):
+  - default/cache-layer (env var REDIS_URL matches ElastiCache endpoint)
+```
+
+#### 3b. User Confirmation and Manual Supplement
+
+Ask the user to confirm the auto-discovered dependencies and add any that were
+missed:
+
+```
+Are these correct? Please also add any applications I may have missed.
+Format: namespace/deployment or namespace/pod-label-selector
 
 >
 ```

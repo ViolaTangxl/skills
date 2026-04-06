@@ -339,12 +339,82 @@ Generate files following the templates in `references/output-structure.md`:
 1. **experiment-template.json** — FIS experiment template for CLI creation
 2. **iam-policy.json** — IAM permissions needed by the FIS execution role
 3. **cfn-template.yaml** — CloudFormation template containing ALL resources:
-   - IAM Role + Policy
+   - IAM Role with **AWS managed policies** as base + inline policy for extras
    - CloudWatch Dashboard (comprehensive per-service metrics)
    - FIS Experiment Template (default `Source: 'none'`)
    - CloudWatch Alarm — **only if user provided a stop condition**
 4. **alarms/stop-condition-alarms.json** — Standalone alarm definitions (**only if user provided a stop condition**; otherwise skip)
 5. **alarms/dashboard.json** — CloudWatch dashboard body
+
+#### FIS Execution Role: Use AWS Managed Policies
+
+**IMPORTANT:** Build the FIS execution IAM role using AWS managed policies as the
+base, rather than crafting inline permissions from scratch. This ensures coverage
+of all required permissions (including those added by AWS in future updates) and
+reduces template maintenance burden.
+
+**Available AWS managed policies for FIS:**
+
+| Managed Policy ARN | Covers |
+|---|---|
+| `arn:aws:iam::aws:policy/service-role/AWSFaultInjectionSimulatorEC2Access` | EC2 stop/start/terminate, SSM send-command on EC2 |
+| `arn:aws:iam::aws:policy/service-role/AWSFaultInjectionSimulatorRDSAccess` | RDS failover, reboot |
+| `arn:aws:iam::aws:policy/service-role/AWSFaultInjectionSimulatorNetworkAccess` | Network ACL disruption, route table, transit gateway, VPC endpoint |
+| `arn:aws:iam::aws:policy/service-role/AWSFaultInjectionSimulatorECSAccess` | ECS task stop, container instance drain |
+| `arn:aws:iam::aws:policy/service-role/AWSFaultInjectionSimulatorEKSAccess` | EKS pod actions (pod-delete, pod-cpu-stress, etc.) |
+| `arn:aws:iam::aws:policy/service-role/AWSFaultInjectionSimulatorSSMAccess` | SSM automation, send-command |
+
+**Selection rule:** Attach only the managed policies needed for the actions in the
+experiment. Map FIS actions to managed policies:
+
+| FIS Action Prefix | Managed Policy to Attach |
+|---|---|
+| `aws:ec2:stop-instances`, `aws:ec2:terminate-instances`, `aws:ec2:api-*`, `aws:ec2:asg-*` | EC2Access |
+| `aws:rds:*` | RDSAccess |
+| `aws:network:*`, `aws:ec2:send-spot-instance-interruptions` | NetworkAccess |
+| `aws:ecs:*` | ECSAccess |
+| `aws:eks:*` | EKSAccess |
+| `aws:ssm:*` | SSMAccess |
+| `aws:ebs:*` | EC2Access (EBS actions are covered by EC2Access) |
+| `aws:elasticache:*` | *(no managed policy — use inline)* |
+| `aws:s3:*` | *(no managed policy — use inline)* |
+
+**For actions not covered by managed policies** (e.g., ElastiCache, S3, DynamoDB),
+add an inline policy with only the specific permissions needed.
+
+**CFN template pattern:**
+```yaml
+FISExperimentRole:
+  Type: AWS::IAM::Role
+  Properties:
+    RoleName: !Sub 'FISRole-${ExperimentName}'
+    AssumeRolePolicyDocument:
+      Version: '2012-10-17'
+      Statement:
+        - Effect: Allow
+          Principal:
+            Service: fis.amazonaws.com
+          Action: sts:AssumeRole
+    ManagedPolicyArns:
+      # Attach only the managed policies needed for this experiment's actions
+      - arn:aws:iam::aws:policy/service-role/AWSFaultInjectionSimulatorEC2Access
+      # - arn:aws:iam::aws:policy/service-role/AWSFaultInjectionSimulatorRDSAccess
+      # - arn:aws:iam::aws:policy/service-role/AWSFaultInjectionSimulatorNetworkAccess
+      # - arn:aws:iam::aws:policy/service-role/AWSFaultInjectionSimulatorEKSAccess
+    Policies:
+      # Only add inline policy for permissions NOT covered by managed policies
+      - PolicyName: FISExtraPermissions
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Sid: FISLogging
+              Effect: Allow
+              Action:
+                - logs:CreateLogDelivery
+                - logs:PutLogEvents
+                - logs:CreateLogStream
+              Resource: '*'
+```
 6. **README.md** — Experiment overview and execution instructions
 
 See `references/output-structure.md` for exact file formats.
