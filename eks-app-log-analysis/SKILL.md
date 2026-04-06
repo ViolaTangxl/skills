@@ -197,7 +197,11 @@ SERVICE_APP_MAP:
 
 #### Real-time Mode: Background Collection
 
-For each application, start a background `kubectl logs -f` process:
+For each application, use `--selector` to collect logs from all matching pods.
+This is more robust than `deployment/xxx` because it captures logs from all pods
+with the matching labels, including pods recreated during the experiment.
+
+First, resolve the deployment's label selector:
 
 ```bash
 # Save logs to a temp directory (not the experiment dir or current dir)
@@ -211,12 +215,26 @@ for app in ${APPS[@]}; do
     DEPLOYMENT=$(echo $app | cut -d'/' -f2)
     SERVICE_DIR="${LOG_DIR}/${SERVICE_NAME}"
 
-    kubectl logs -f deployment/${DEPLOYMENT} -n ${NAMESPACE} \
-        --timestamps --all-containers=true \
+    # Resolve the deployment's pod selector labels
+    SELECTOR=$(kubectl get deployment "${DEPLOYMENT}" -n "${NAMESPACE}" \
+      -o jsonpath='{.spec.selector.matchLabels}' | \
+      jq -r 'to_entries | map("\(.key)=\(.value)") | join(",")')
+
+    kubectl logs -f --selector="${SELECTOR}" -n ${NAMESPACE} \
+        --timestamps --all-containers=true --prefix=true --max-log-requests=20 \
         >> "${SERVICE_DIR}/${DEPLOYMENT}.log" 2>&1 &
     echo $! >> "${LOG_DIR}/.pids"
 done
 ```
+
+> **Why `--selector` over `deployment/xxx`:**
+> - `deployment/xxx` only streams logs from pods that exist at invocation time;
+>   if pods restart during a fault injection, the stream dies silently.
+> - `--selector` matches all current pods with those labels.
+> - `--prefix=true` prepends the pod name to each line, making it easy to
+>   distinguish which pod emitted each log entry.
+> - `--max-log-requests=20` raises the default concurrent log stream limit
+>   (default 5) to handle deployments with more replicas.
 
 #### Post-hoc Mode: Batch Fetch
 
@@ -224,8 +242,13 @@ done
 # Save logs to a temp directory (not the experiment dir or current dir)
 export LOG_DIR="/tmp/$(date +%Y-%m-%d-%H-%M-%S)-fis-app-logs"
 
-kubectl logs deployment/${DEPLOYMENT} -n ${NAMESPACE} \
-    --timestamps --all-containers=true \
+# Resolve selector same as above
+SELECTOR=$(kubectl get deployment "${DEPLOYMENT}" -n "${NAMESPACE}" \
+  -o jsonpath='{.spec.selector.matchLabels}' | \
+  jq -r 'to_entries | map("\(.key)=\(.value)") | join(",")')
+
+kubectl logs --selector="${SELECTOR}" -n ${NAMESPACE} \
+    --timestamps --all-containers=true --prefix=true --max-log-requests=20 \
     --since-time="${START_TIME}" \
     > "${SERVICE_DIR}/${DEPLOYMENT}.log" 2>&1
 ```
